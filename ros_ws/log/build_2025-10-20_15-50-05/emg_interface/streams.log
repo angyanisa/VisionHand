@@ -1,0 +1,23 @@
+[0.013s] Invoking command in '/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface -- -j8 -l8
+[0.057s] Invoked command in '/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface -- -j8 -l8
+[0.069s] Invoking command in '/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface
+[0.076s] -- Install configuration: ""
+[0.076s] -- Execute custom install script
+[0.077s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/lib/emg_interface/EMG_udp_collector.py
+[0.077s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/lib/emg_interface/EMG_live_classifier.py
+[0.077s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/ament_index/resource_index/package_run_dependencies/emg_interface
+[0.077s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/ament_index/resource_index/parent_prefix_path/emg_interface
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/environment/ament_prefix_path.sh
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/environment/ament_prefix_path.dsv
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/environment/path.sh
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/environment/path.dsv
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/local_setup.bash
+[0.078s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/local_setup.sh
+[0.079s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/local_setup.zsh
+[0.079s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/local_setup.dsv
+[0.079s] -- Symlinking: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/package.dsv
+[0.088s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/ament_index/resource_index/packages/emg_interface
+[0.088s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/cmake/emg_interfaceConfig.cmake
+[0.088s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/cmake/emg_interfaceConfig-version.cmake
+[0.088s] -- Up-to-date symlink: /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/share/emg_interface/package.xml
+[0.091s] Invoked command in '/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface

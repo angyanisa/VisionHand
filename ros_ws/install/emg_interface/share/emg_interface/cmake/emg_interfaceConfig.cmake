@@ -1,0 +1,1 @@
+/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig.cmake
