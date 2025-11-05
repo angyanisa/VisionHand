@@ -1,1 +1,1 @@
-/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface/src/EMG_live_classifier.py
+/home/belle/VisionHand/ros_ws/src/emg_interface/src/EMG_live_classifier.py

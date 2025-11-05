@@ -1,1 +1,1 @@
-/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash
+/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash

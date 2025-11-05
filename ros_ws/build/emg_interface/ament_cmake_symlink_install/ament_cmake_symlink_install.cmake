@@ -23,7 +23,7 @@ function(ament_cmake_symlink_install_directory cmake_current_source_dir)
 
   # make destination absolute path and ensure that it exists
   if(NOT IS_ABSOLUTE "${ARG_DESTINATION}")
-    set(ARG_DESTINATION "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
+    set(ARG_DESTINATION "/home/belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
   endif()
   if(NOT EXISTS "${ARG_DESTINATION}")
     file(MAKE_DIRECTORY "${ARG_DESTINATION}")
@@ -123,7 +123,7 @@ function(ament_cmake_symlink_install_files cmake_current_source_dir)
 
   # make destination an absolute path and ensure that it exists
   if(NOT IS_ABSOLUTE "${ARG_DESTINATION}")
-    set(ARG_DESTINATION "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
+    set(ARG_DESTINATION "/home/belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
   endif()
   if(NOT EXISTS "${ARG_DESTINATION}")
     file(MAKE_DIRECTORY "${ARG_DESTINATION}")
@@ -181,7 +181,7 @@ function(ament_cmake_symlink_install_programs cmake_current_source_dir)
 
   # make destination an absolute path and ensure that it exists
   if(NOT IS_ABSOLUTE "${ARG_DESTINATION}")
-    set(ARG_DESTINATION "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
+    set(ARG_DESTINATION "/home/belle/VisionHand/ros_ws/install/emg_interface/${ARG_DESTINATION}")
   endif()
   if(NOT EXISTS "${ARG_DESTINATION}")
     file(MAKE_DIRECTORY "${ARG_DESTINATION}")
@@ -251,7 +251,7 @@ function(ament_cmake_symlink_install_targets)
 
     # make destination an absolute path and ensure that it exists
     if(NOT IS_ABSOLUTE "${destination}")
-      set(destination "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/install/emg_interface/${destination}")
+      set(destination "/home/belle/VisionHand/ros_ws/install/emg_interface/${destination}")
     endif()
     if(NOT EXISTS "${destination}")
       file(MAKE_DIRECTORY "${destination}")
@@ -310,47 +310,47 @@ message(STATUS "Execute custom install script")
 
 # begin of custom install code
 
-# install(PROGRAMS "src/EMG_udp_collector.py" "src/EMG_live_classifier.py" "DESTINATION" "lib/emg_interface")
-ament_cmake_symlink_install_programs("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" PROGRAMS "src/EMG_udp_collector.py" "src/EMG_live_classifier.py" "DESTINATION" "lib/emg_interface")
+# install(PROGRAMS "src/EMG_udp_collector.py" "src/EMG_feature_extractor.py" "src/EMG_train_model.py" "src/EMG_live_classifier.py" "DESTINATION" "lib/emg_interface")
+ament_cmake_symlink_install_programs("/home/belle/VisionHand/ros_ws/src/emg_interface" PROGRAMS "src/EMG_udp_collector.py" "src/EMG_feature_extractor.py" "src/EMG_train_model.py" "src/EMG_live_classifier.py" "DESTINATION" "lib/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/package_run_dependencies/emg_interface" "DESTINATION" "share/ament_index/resource_index/package_run_dependencies")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/package_run_dependencies/emg_interface" "DESTINATION" "share/ament_index/resource_index/package_run_dependencies")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/package_run_dependencies/emg_interface" "DESTINATION" "share/ament_index/resource_index/package_run_dependencies")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/package_run_dependencies/emg_interface" "DESTINATION" "share/ament_index/resource_index/package_run_dependencies")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/parent_prefix_path/emg_interface" "DESTINATION" "share/ament_index/resource_index/parent_prefix_path")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/parent_prefix_path/emg_interface" "DESTINATION" "share/ament_index/resource_index/parent_prefix_path")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/parent_prefix_path/emg_interface" "DESTINATION" "share/ament_index/resource_index/parent_prefix_path")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/parent_prefix_path/emg_interface" "DESTINATION" "share/ament_index/resource_index/parent_prefix_path")
 
 # install(FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/ament_prefix_path.sh" "DESTINATION" "share/emg_interface/environment")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/ament_prefix_path.sh" "DESTINATION" "share/emg_interface/environment")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/ament_prefix_path.sh" "DESTINATION" "share/emg_interface/environment")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/ament_prefix_path.dsv" "DESTINATION" "share/emg_interface/environment")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/ament_prefix_path.dsv" "DESTINATION" "share/emg_interface/environment")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/ament_prefix_path.dsv" "DESTINATION" "share/emg_interface/environment")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/ament_prefix_path.dsv" "DESTINATION" "share/emg_interface/environment")
 
 # install(FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/path.sh" "DESTINATION" "share/emg_interface/environment")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/path.sh" "DESTINATION" "share/emg_interface/environment")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/opt/ros/humble/share/ament_cmake_core/cmake/environment_hooks/environment/path.sh" "DESTINATION" "share/emg_interface/environment")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/path.dsv" "DESTINATION" "share/emg_interface/environment")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/path.dsv" "DESTINATION" "share/emg_interface/environment")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/path.dsv" "DESTINATION" "share/emg_interface/environment")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/path.dsv" "DESTINATION" "share/emg_interface/environment")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.bash" "DESTINATION" "share/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.sh" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.sh" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.sh" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.sh" "DESTINATION" "share/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.zsh" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.zsh" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.zsh" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.zsh" "DESTINATION" "share/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.dsv" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.dsv" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.dsv" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/local_setup.dsv" "DESTINATION" "share/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/package.dsv" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/package.dsv" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/package.dsv" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_environment_hooks/package.dsv" "DESTINATION" "share/emg_interface")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/packages/emg_interface" "DESTINATION" "share/ament_index/resource_index/packages")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/packages/emg_interface" "DESTINATION" "share/ament_index/resource_index/packages")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/packages/emg_interface" "DESTINATION" "share/ament_index/resource_index/packages")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_index/share/ament_index/resource_index/packages/emg_interface" "DESTINATION" "share/ament_index/resource_index/packages")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig.cmake" "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig-version.cmake" "DESTINATION" "share/emg_interface/cmake")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig.cmake" "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig-version.cmake" "DESTINATION" "share/emg_interface/cmake")
+# install(FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig.cmake" "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig-version.cmake" "DESTINATION" "share/emg_interface/cmake")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig.cmake" "/home/belle/VisionHand/ros_ws/build/emg_interface/ament_cmake_core/emg_interfaceConfig-version.cmake" "DESTINATION" "share/emg_interface/cmake")
 
-# install(FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface/package.xml" "DESTINATION" "share/emg_interface")
-ament_cmake_symlink_install_files("/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/alahe/Documents/ARMLab-belle/VisionHand/ros_ws/src/emg_interface/package.xml" "DESTINATION" "share/emg_interface")
+# install(FILES "/home/belle/VisionHand/ros_ws/src/emg_interface/package.xml" "DESTINATION" "share/emg_interface")
+ament_cmake_symlink_install_files("/home/belle/VisionHand/ros_ws/src/emg_interface" FILES "/home/belle/VisionHand/ros_ws/src/emg_interface/package.xml" "DESTINATION" "share/emg_interface")
