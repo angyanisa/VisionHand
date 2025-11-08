@@ -35,6 +35,7 @@ setup(
 
             "sam_client_test_node = scripts.sam_client_test_node:main",
             "sam_client_aria_node = scripts.sam_client_aria_node:main",
+            "aria_to_sam_node = scripts.aria_to_sam_node:main"
         ],
     },
 )
