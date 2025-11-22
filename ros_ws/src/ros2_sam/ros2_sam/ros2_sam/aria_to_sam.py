@@ -21,6 +21,13 @@ class AriaToSAM(Node):
         self.gaze_y = None
         self.bridge = CvBridge()
 
+        self.sampling = False
+        self.sample_duration = 2.0  # seconds
+        self.samples_x = []
+        self.samples_y = []
+        self.samples_img = []
+        self.create_timer(0.05, self.sampling_timer)
+
         # SAM client
         self.sam_client = SAMClient(
             node_name="sam_client_wrapper",
@@ -40,25 +47,71 @@ class AriaToSAM(Node):
 
     def trigger_cb(self, msg: Bool):
         """Called when a trigger message arrives."""
-        if msg.data:
-            self.get_logger().info("Trigger received! Capturing image and gaze...")
-            if self.image_msg is not None and self.gaze_x is not None and self.gaze_y is not None:
-                self.get_logger().info("All data ready — processing capture")
-                self.process_image(self.image_msg, self.gaze_x, self.gaze_y)
-            else:
-                self.get_logger().info("Data missing!")
+        if msg.data and not self.sampling:
+            self.get_logger().info("Trigger received! Starting 2s sampling window...")
+            self.sampling = True
+            self.samples_x = []
+            self.samples_y = []
+            self.samples_img = []
+            self.start_time = self.get_clock().now()
+
+            # if self.image_msg is not None and self.gaze_x is not None and self.gaze_y is not None:
+            #     self.get_logger().info("All data ready — processing capture")
+            #     self.process_image(self.image_msg, self.gaze_x, self.gaze_y)
+            # else:
+            #     self.get_logger().info("Data missing!")
 
     # ---------- Callbacks ----------
     def image_cb(self, msg):
         self.image_msg = msg
+        if self.sampling:
+            self.samples_img.append(msg)
 
     def gaze_x_cb(self, msg):
         self.gaze_x = msg.data
+        if self.sampling:
+            self.samples_x.append(msg.data)
 
     def gaze_y_cb(self, msg):
         self.gaze_y = msg.data
+        if self.sampling:
+            self.samples_y.append(msg.data)
 
     # ---------- Main logic ----------
+    def sampling_timer(self):
+        if not self.sampling:
+            return
+
+        elapsed = (self.get_clock().now() - self.start_time).nanoseconds * 1e-9
+
+        if elapsed >= self.sample_duration:
+            self.sampling = False
+            num_imgs = len(self.samples_img)
+            num_x = len(self.samples_x)
+            num_y = len(self.samples_y)
+            self.get_logger().info(
+                f"Sampling complete: {num_imgs} images, {num_x} x-samples, {num_y} y-samples"
+            )
+
+            if num_imgs == 0:
+                self.get_logger().error("No images collected during sampling — cannot process.")
+                return
+
+            if num_x == 0 or num_y == 0:
+                self.get_logger().warn("No gaze samples collected — using latest known gaze instead.")
+                return
+
+            else:
+                # Normal case: use median sample
+                gaze_x = int(np.median(self.samples_x))
+                gaze_y = int(np.median(self.samples_y))
+
+            # ---------- Image Selection ----------
+            image_msg = self.samples_img[-1]
+
+            self.get_logger().info(f"Processing with gaze ({gaze_x}, {gaze_y})")
+            self.process_image(image_msg, gaze_x, gaze_y)
+
     def process_image(self, image_msg, gaze_x, gaze_y):
         """Run SAM segmentation given one RGB frame and gaze coordinate."""
         # Convert ROS Image to OpenCV
@@ -93,7 +146,7 @@ class AriaToSAM(Node):
 
         save_path = os.path.join(
             os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
-            "results/masks/aria_sam_masked.jpg"
+            "result_masks/aria_sam_masked.jpg"
         )
         plt.savefig(save_path)
         plt.show()
@@ -109,15 +162,23 @@ class AriaToSAM(Node):
         y_min, y_max = y_mask.min(), y_mask.max()
         cropped_img = image[y_min:y_max + 1, x_min:x_max + 1, :]
 
-        self.get_logger().info(
-            f"Cropped region: x[{x_min}:{x_max}], y[{y_min}:{y_max}], shape={cropped_img.shape}"
-        )
+        # --- Draw gaze point inside cropped image ---
+        local_gx = gaze_x - x_min
+        local_gy = gaze_y - y_min
 
-        cropped_rgb = cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)
+        if 0 <= local_gx < cropped_img.shape[1] and 0 <= local_gy < cropped_img.shape[0]:
+            # Draw a red dot (OpenCV uses BGR)
+            cv2.circle(cropped_img, (int(local_gx), int(local_gy)), 6, (255, 0, 0), -1)
+        else:
+            self.get_logger().warn(f"Gaze point ({gaze_x},{gaze_y}) is outside cropped region, not drawing dot.")
+
+        self.get_logger().info(f"Cropped region: x[{x_min}:{x_max}], y[{y_min}:{y_max}], shape={cropped_img.shape}")
+
+        cropped_bgr = cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)
         # Save cropped image
         cv2.imwrite(
             os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-            "results/aria_sam_cropped.jpg"), cropped_rgb
+            "result_cropped/aria_sam_cropped.jpg"), cropped_bgr
         )
         self.get_logger().info("Saved cropped image to aria_sam_cropped.jpg")
 
@@ -126,5 +187,5 @@ class AriaToSAM(Node):
         gaze_point.y = float(gaze_y)
         self.gaze_pub.publish(gaze_point)
 
-        cropped_msg = self.bridge.cv2_to_imgmsg(cropped_rgb, encoding="rgb8")
+        cropped_msg = self.bridge.cv2_to_imgmsg(cropped_bgr, encoding="bgr8")
         self.image_pub.publish(cropped_msg)

@@ -60,7 +60,7 @@ def main(args: List[str] = None) -> None:
         print(f"cropped image shape = {cropped_img.shape}")
         print(f"path: {os.path.dirname(os.path.realpath(__file__))}")
         cv2.imwrite(
-            os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "results/test_bottle_cropped.jpg"), cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)
+            os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "result_cropped/test_bottle_cropped.jpg"), cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)
         )
         # cv2.imwrite(
         #     os.path.join(get_package_share_directory("ros2_sam"), "results/test_bottle_cropped.jpg"), cv2.cvtColor(cropped_img, cv2.COLOR_RGB2BGR)
