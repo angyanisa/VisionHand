@@ -7,6 +7,7 @@ import cv2
 from google import genai
 from google.genai import types
 import os
+from dotenv import load_dotenv
 
 class GeminiImageLabel(Node):
     def __init__(self):
@@ -18,7 +19,9 @@ class GeminiImageLabel(Node):
         self.publisher = self.create_publisher(String, '/gemini/detected_object', 10)
 
         # Set up Gemini client (use environment variable for API key)
-        self.client = genai.Client(api_key="AIzaSyDA-gg6YprHisxUw6yVtTZJFRe_6oW2FWg")
+        load_dotenv('/home/belle/VisionHand/ros_ws/.env')
+        api_key = os.getenv("API_KEY")
+        self.client = genai.Client(api_key=api_key)
         self.get_logger().info('Gemini Image Label Node Initialized. Waiting for images...')
 
     def image_callback(self, msg):

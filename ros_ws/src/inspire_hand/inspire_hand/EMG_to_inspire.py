@@ -4,6 +4,7 @@
 
 import rclpy
 from rclpy.node import Node
+from ament_index_python.packages import get_package_share_directory
 from std_msgs.msg import Int32, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import pandas as pd
@@ -33,10 +34,10 @@ class EMGToInspireMultiCSV(Node):
 
         # Gesture → CSV mapping
         self.csv_map = {
-            1: 'bottle_body.csv',
-            2: 'bottle_lid.csv',
-            3: 'mug_body.csv',
-            4: 'mug_handle.csv'
+            "Bottle body": 'bottle_body.csv',
+            "Bottle cap": 'bottle_lid.csv',
+            "Mug body": 'mug_body.csv',
+            "Mug handle": 'mug_handle.csv'
         }
 
         self.frame_rate = 100
@@ -56,15 +57,18 @@ class EMGToInspireMultiCSV(Node):
                 self.calibration = json.load(f)
         else:
             self.calibration = None
+
+        self.max_open = [1.0, 1.0, 1.0, 1.0, 1.0, 0.0]
+        self.min_closure = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         # test 1: grasping cube
-        #self.min_closure = [0.1, 0.4, 0.5, 0.4, 0.4, 0.0]
-        #self.max_open = [0.8, 0.7, 0.9, 1.0, 1.0, 0.0]
+        # self.min_closure = [0.1, 0.4, 0.5, 0.4, 0.4, 0.0]
+        # self.max_open = [0.8, 0.7, 0.9, 1.0, 1.0, 0.0]
         #test 2: pinching coin
         #self.min_closure = [0.1, 0.4, 0.2, 0.15, 0.4, 0.0]  # minimum closed position per finger
         #self.max_open = [0.8, 0.7, 0.9, 1.0, 0.5, 0.0]
         #test 3: sliding card
-        self.min_closure = [0.3, 0.3, 0.0, 0.0, 0.1, 0.0]  # minimum closed position per finger
-        self.max_open = [0.8, 0.7, 0.9, 0.80, 0.5, 0.0]     # maximum open position per finger
+        # self.min_closure = [0.3, 0.3, 0.0, 0.0, 0.1, 0.0]  # minimum closed position per finger
+        # self.max_open = [0.8, 0.7, 0.9, 0.80, 0.5, 0.0]     # maximum open position per finger
         self.get_logger().info("EMG to Inspire multi-CSV node started.")
 
     def normalize_with_calibration(self, angle, dof):
@@ -103,11 +107,8 @@ class EMGToInspireMultiCSV(Node):
             self.pub.publish(msg)
             time.sleep(self.frame_delay)
 
-    def start_stream(self, gesture):
-        if gesture not in self.csv_map:
-            self.get_logger().warn(f"No CSV mapped for gesture {gesture}")
-            return
-        csv_file = self.csv_map[gesture]
+    def start_stream(self, detected_object):
+        csv_file = self.csv_map[detected_object]
         file_path = os.path.join(get_package_share_directory("inspire_hand"), "rokoko_csv", csv_file)
         self.stop_flag = False
         self.active_thread = threading.Thread(target=self.stream_csv, args=(file_path,))
@@ -117,6 +118,17 @@ class EMGToInspireMultiCSV(Node):
         self.stop_flag = True
         if self.active_thread and self.active_thread.is_alive():
             self.active_thread.join()
+
+    def open_hand(self):
+        msg = JointTrajectory()
+        msg.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+        point = JointTrajectoryPoint()
+        point.positions = self.max_open
+        point.time_from_start.sec = 0
+        point.time_from_start.nanosec = int(self.frame_delay * 1e9)
+        msg.points.append(point)
+        self.pub.publish(msg)
+        time.sleep(self.frame_delay)
 
     def emg_callback(self, msg):
         gesture = msg.data
@@ -149,8 +161,14 @@ class EMGToInspireMultiCSV(Node):
     def gemini_callback(self, msg):
         detected_object = msg.data
 
-        if detected_object == "Bottle body":
-            self.start_stream(1)
+        if detected_object in self.csv_map:
+            self.start_stream(detected_object)
+        elif detected_object == "open":
+            self.open_hand()
+        else:
+            self.get_logger().warn(f"No CSV mapped for unknown object")
+
+        
 
 
 def main(args=None):

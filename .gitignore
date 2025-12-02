@@ -5,3 +5,4 @@ ros_ws/log/
 build/
 install/
 log/
+**/.env
