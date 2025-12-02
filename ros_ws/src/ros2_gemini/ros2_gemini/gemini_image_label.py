@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from cv_bridge import CvBridge
 import cv2
 from google import genai
@@ -13,6 +14,8 @@ class GeminiImageLabel(Node):
 
         self.bridge = CvBridge()
         self.create_subscription(Image, "/sam/cropped_image", self.image_callback, 10)
+
+        self.publisher = self.create_publisher(String, '/gemini/detected_object', 10)
 
         # Set up Gemini client (use environment variable for API key)
         self.client = genai.Client(api_key="AIzaSyDA-gg6YprHisxUw6yVtTZJFRe_6oW2FWg")
@@ -44,8 +47,15 @@ class GeminiImageLabel(Node):
                 model='gemini-2.5-flash',
                 contents=[image_part, prompt]
             )
+            
+            response = response.text.strip()
 
-            self.get_logger().info(f'Gemini Response: {response.text}')
+            self.get_logger().info(f'Gemini Response: {response}')
+
+            detected_object = String()
+            detected_object.data =response
+            self.publisher.publish(detected_object)
+            self.get_logger().info(f'Published detected object!')
 
         except Exception as e:
             self.get_logger().error(f"Error processing image or calling Gemini API: {e}")

@@ -11,7 +11,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 
 class InspireHandDriver(Node):
     def __init__(self):
-        super().__init__('inspire_hand_driver')
+        super().__init__('inspire_hand_listener')
 
         self.serial_port = "/dev/ttyUSB0"
         self.baud_rate = 115200

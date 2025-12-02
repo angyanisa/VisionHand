@@ -4,7 +4,7 @@
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, String
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import pandas as pd
 import json
@@ -26,16 +26,17 @@ CALIBRATION_FILE = "calibration.json"
 
 class EMGToInspireMultiCSV(Node):
     def __init__(self):
-        super().__init__('emg_to_inspire_multi_csv')
-        self.sub = self.create_subscription(Int32, '/emg_gesture', self.callback, 10)
+        super().__init__('emg_to_inspire')
+        self.create_subscription(Int32, '/emg_gesture', self.emg_callback, 10)
+        self.create_subscription(String, "/gemini/detected_object", self.gemini_callback, 10)
         self.pub = self.create_publisher(JointTrajectory, '/inspire_hand/joint_trajectory', 10)
 
         # Gesture → CSV mapping
         self.csv_map = {
-            1: 'task3-1.csv',
-            2: 'task3-2.csv',
-            3: 'task3-2.csv',
-            4: 'task3-3.csv'
+            1: 'bottle_body.csv',
+            2: 'bottle_lid.csv',
+            3: 'mug_body.csv',
+            4: 'mug_handle.csv'
         }
 
         self.frame_rate = 100
@@ -107,8 +108,9 @@ class EMGToInspireMultiCSV(Node):
             self.get_logger().warn(f"No CSV mapped for gesture {gesture}")
             return
         csv_file = self.csv_map[gesture]
+        file_path = os.path.join(get_package_share_directory("inspire_hand"), "rokoko_csv", csv_file)
         self.stop_flag = False
-        self.active_thread = threading.Thread(target=self.stream_csv, args=(csv_file,))
+        self.active_thread = threading.Thread(target=self.stream_csv, args=(file_path,))
         self.active_thread.start()
 
     def stop_stream(self):
@@ -116,7 +118,7 @@ class EMGToInspireMultiCSV(Node):
         if self.active_thread and self.active_thread.is_alive():
             self.active_thread.join()
 
-    def callback(self, msg):
+    def emg_callback(self, msg):
         gesture = msg.data
 
         # If already playing a gesture, ignore further input until finished
@@ -143,6 +145,12 @@ class EMGToInspireMultiCSV(Node):
             self.start_stream(gesture)
             self.last_gesture = gesture
             self.candidate_count = 0
+
+    def gemini_callback(self, msg):
+        detected_object = msg.data
+
+        if detected_object == "Bottle body":
+            self.start_stream(1)
 
 
 def main(args=None):

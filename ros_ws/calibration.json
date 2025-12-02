@@ -1,0 +1,44 @@
+{
+  "0": {
+    "csv_open": 5.6762068,
+    "csv_closed": 65.403455,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  },
+  "1": {
+    "csv_open": -0.182544755,
+    "csv_closed": 71.7380155,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  },
+  "2": {
+    "csv_open": 1.4952502,
+    "csv_closed": 71.5873095,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  },
+  "3": {
+    "csv_open": 8.854662750000001,
+    "csv_closed": 73.350429,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  },
+  "4": {
+    "csv_open": 12.409166,
+    "csv_closed": 37.528872,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  },
+  "5": {
+    "csv_open": 57.328724,
+    "csv_closed": 61.182688,
+    "invert": true,
+    "hand_open": 1000,
+    "hand_closed": 0
+  }
+}
