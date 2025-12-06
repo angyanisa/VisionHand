@@ -1,1 +1,0 @@
-/home/belle/VisionHand/ros_ws/src/emg_interface/src/EMG_udp_collector.py

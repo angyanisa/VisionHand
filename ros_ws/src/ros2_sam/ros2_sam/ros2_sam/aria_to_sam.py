@@ -149,8 +149,8 @@ class AriaToSAM(Node):
             "result_masks/aria_sam_masked.jpg"
         )
         plt.savefig(save_path)
-        # plt.show()
-        # plt.pause(1.0)
+        plt.show()
+        plt.pause(1.0)
 
         # Crop image region based on mask
         y_mask, x_mask = np.where(np.squeeze(mask) == 1)

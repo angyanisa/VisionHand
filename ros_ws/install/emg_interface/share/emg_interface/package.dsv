@@ -1,8 +1,6 @@
-source;share/emg_interface/hook/cmake_prefix_path.ps1
-source;share/emg_interface/hook/cmake_prefix_path.dsv
-source;share/emg_interface/hook/cmake_prefix_path.sh
-source;share/emg_interface/local_setup.bash
-source;share/emg_interface/local_setup.dsv
-source;share/emg_interface/local_setup.ps1
-source;share/emg_interface/local_setup.sh
-source;share/emg_interface/local_setup.zsh
+source;share/emg_interface/hook/pythonpath.ps1
+source;share/emg_interface/hook/pythonpath.dsv
+source;share/emg_interface/hook/pythonpath.sh
+source;share/emg_interface/hook/ament_prefix_path.ps1
+source;share/emg_interface/hook/ament_prefix_path.dsv
+source;share/emg_interface/hook/ament_prefix_path.sh

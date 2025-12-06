@@ -24,7 +24,7 @@ setup(
         'console_scripts': [
             "inspire_hand_listener = inspire_hand.inspire_hand_listener:main",
             "rokoko_to_inspire = inspire_hand.rokoko_to_inspire:main",
-            "EMG_to_inspire = inspire_hand.EMG_to_inspire:main",
+            "emg_to_inspire = inspire_hand.EMG_to_inspire:main",
         ],
     },
 )
