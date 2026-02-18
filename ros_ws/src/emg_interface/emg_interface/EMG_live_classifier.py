@@ -10,12 +10,25 @@ import numpy as np
 import joblib
 import os
 from collections import deque
-from emg_interface.EMG_feature_extractor import extract_features  # from step 2
+# from emg_interface.EMG_feature_extractor import extract_features  # from step 2
 
 WINDOW_SIZE = 100
 WINDOW_INCREMENT = 50
 NUM_CHANNELS = 8
 UDP_PORT = 12346
+
+def extract_features(window):
+    features = []
+    for ch in range(NUM_CHANNELS):
+        signal = window[:, ch]
+        mean = np.mean(signal)
+        std = np.std(signal)
+        rms = np.sqrt(np.mean(signal**2))
+        wl = np.sum(np.abs(np.diff(signal)))
+        zc = np.sum((signal[:-1] * signal[1:] < 0).astype(int))
+        ssc = np.sum(np.diff(np.sign(np.diff(signal))) != 0)
+        features.extend([mean, std, rms, wl, zc, ssc])
+    return features
 
 class EMGLiveClassifier(Node):
     def __init__(self):
@@ -54,7 +67,7 @@ class EMGLiveClassifier(Node):
                         window_np = np.array(self.buffer)
                         features = np.array(extract_features(window_np)).reshape(1, -1)
                         pred = self.model.predict(features)[0]
-                        print(f"[Prediction] Gesture: {pred}")
+                        # print(f"[Prediction] Gesture: {pred}")
 
                         msg = Int32()
                         msg.data = int(pred)
