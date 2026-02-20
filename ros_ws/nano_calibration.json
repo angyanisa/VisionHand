@@ -1,0 +1,52 @@
+{
+  "1": {
+    "csv_open": -30.0,
+    "csv_closed": 30.0,
+    "invert": true
+  },
+  "2": {
+    "csv_open": 0.0,
+    "csv_closed": 84.22,
+    "invert": true
+  },
+  "3": {
+    "csv_open": -30.0,
+    "csv_closed": 30.0,
+    "invert": true
+  },
+  "4": {
+    "csv_open": 0.0,
+    "csv_closed": 84.22,
+    "invert": true
+  },
+  "5": {
+    "csv_open": -30.0,
+    "csv_closed": 30.0,
+    "invert": true
+  },
+  "6": {
+    "csv_open": 0.0,
+    "csv_closed": 84.22,
+    "invert": true
+  },
+  "7": {
+    "csv_open": -30.0,
+    "csv_closed": 30.0,
+    "invert": true
+  },
+  "8": {
+    "csv_open": 0.0,
+    "csv_closed": 84.22,
+    "invert": true
+  },
+  "9": {
+    "csv_open": -30.0,
+    "csv_closed": 30.0,
+    "invert": true
+  },
+  "10": {
+    "csv_open": 0.0,
+    "csv_closed": 84.22,
+    "invert": true
+  }
+}

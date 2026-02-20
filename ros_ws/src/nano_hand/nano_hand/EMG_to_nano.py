@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 #reads directly from the csv files
 
-
 import rclpy
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
@@ -14,30 +13,36 @@ import time
 import threading
 import numpy as np
 
+N_SERVOS = 10
 DOF_ANGLE_SOURCES = {
-    0: ['LeftDigit5Metacarpophalangeal_flexion', 'LeftDigit5ProximalInterphalangeal_flexion'],
-    1: ['LeftDigit4Metacarpophalangeal_flexion', 'LeftDigit4ProximalInterphalangeal_flexion'],
-    2: ['LeftDigit3Metacarpophalangeal_flexion', 'LeftDigit3ProximalInterphalangeal_flexion'],
-    3: ['LeftDigit2Metacarpophalangeal_flexion', 'LeftDigit2ProximalInterphalangeal_flexion'],
-    4: ['LeftDigit1Metacarpophalangeal_flexion'],
-    5: ['LeftDigit1Carpometacarpal_flexion'],
+    1: ['RightDigit5Metacarpophalangeal_ulnarDeviation'],
+    2: ['RightDigit5Metacarpophalangeal_flexion', 'RightDigit5ProximalInterphalangeal_flexion'],
+    3: ['RightDigit4Metacarpophalangeal_ulnarDeviation'],
+    4: ['RightDigit4Metacarpophalangeal_flexion', 'RightDigit4ProximalInterphalangeal_flexion'],
+    5: ['RightDigit3Metacarpophalangeal_ulnarDeviation'],
+    6: ['RightDigit3Metacarpophalangeal_flexion', 'RightDigit3ProximalInterphalangeal_flexion'],
+    7: ['RightDigit2Metacarpophalangeal_ulnarDeviation'],
+    8: ['RightDigit2Metacarpophalangeal_flexion', 'RightDigit2ProximalInterphalangeal_flexion'],
+    9: ['RightDigit1Metacarpophalangeal_ulnarDeviation'],
+    10: ['RightDigit1Metacarpophalangeal_flexion']
 }
 
-CALIBRATION_FILE = "inspire_calibration.json"
+CALIBRATION_FILE = "nano_calibration.json"
 
-class EMGToInspireMultiCSV(Node):
+class EMGToNanoMultiCSV(Node):
     def __init__(self):
-        super().__init__('emg_to_inspire')
+        super().__init__('emg_to_nano')
         self.create_subscription(Int32, '/emg_gesture', self.emg_callback, 10)
         self.create_subscription(String, "/gemini/detected_object", self.gemini_callback, 10)
-        self.pub = self.create_publisher(JointTrajectory, '/inspire_hand/joint_trajectory', 10)
+        self.pub = self.create_publisher(JointTrajectory, '/nano_hand/joint_trajectory', 10)
 
         # Map object to recording CSV and last row index of the grasp
         self.csv_map = {
             "Bottle body": 'bottle_body.csv',
             "Bottle cap": 'bottle_lid.csv',
             "Mug body": 'mug_body.csv',
-            "Mug handle": 'mug_handle.csv'
+            "Mug handle": 'mug_handle.csv',
+            "test": 'move_fingers_1.csv'
         }
 
         self.current_df = None
@@ -61,18 +66,9 @@ class EMGToInspireMultiCSV(Node):
         else:
             self.calibration = None
 
-        self.max_open = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-        self.min_closure = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        # test 1: grasping cube
-        # self.min_closure = [0.1, 0.4, 0.5, 0.4, 0.4, 0.0]
-        # self.max_open = [0.8, 0.7, 0.9, 1.0, 1.0, 0.0]
-        #test 2: pinching coin
-        #self.min_closure = [0.1, 0.4, 0.2, 0.15, 0.4, 0.0]  # minimum closed position per finger
-        #self.max_open = [0.8, 0.7, 0.9, 1.0, 0.5, 0.0]
-        #test 3: sliding card
-        # self.min_closure = [0.3, 0.3, 0.0, 0.0, 0.1, 0.0]  # minimum closed position per finger
-        # self.max_open = [0.8, 0.7, 0.9, 0.80, 0.5, 0.0]     # maximum open position per finger
-        self.get_logger().info("EMG to Inspire multi-CSV node started.")
+        self.max_open = [0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0]
+        self.min_closure = [0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 0.8]
+        self.get_logger().info("EMG to Nano Hand multi-CSV node started.")
 
     def normalize_with_calibration(self, angle, dof):
         if not self.calibration:
@@ -89,7 +85,7 @@ class EMGToInspireMultiCSV(Node):
             values = [row[j] for j in joints if j in row and pd.notnull(row[j])]
             avg = sum(values) / len(values) if values else 0.0
             norm = self.normalize_with_calibration(avg, dof)
-            min_val, max_val = self.min_closure[dof], self.max_open[dof]
+            min_val, max_val = self.min_closure[dof-1], self.max_open[dof-1]
             scaled = min_val + (max_val - min_val) * norm
             dof_positions.append(scaled)
         return dof_positions
@@ -103,7 +99,7 @@ class EMGToInspireMultiCSV(Node):
                 if self.stop_flag:
                     break
                 msg = JointTrajectory()
-                msg.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+                msg.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5', 'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
                 point = JointTrajectoryPoint()
                 point.positions = self.extract_positions(row)
                 point.time_from_start.sec = 0
@@ -128,7 +124,7 @@ class EMGToInspireMultiCSV(Node):
     def open_hand(self):
         if not self.is_open_pose:
             msg = JointTrajectory()
-            msg.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+            msg.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5', 'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
             point = JointTrajectoryPoint()
             point.positions = self.max_open
             point.time_from_start.sec = 0
@@ -162,8 +158,10 @@ class EMGToInspireMultiCSV(Node):
         # If stable enough and different from last executed
         if self.candidate_count >= self.required_stability and gesture != self.last_gesture:
             if gesture == 1:        # grab
+                self.get_logger().info("Start streaming...")
                 self.start_stream()
             elif gesture == 2:      # release
+                self.get_logger().info("Opening hand...")
                 self.open_hand()
             self.last_gesture = gesture
             self.candidate_count = 0
@@ -171,13 +169,13 @@ class EMGToInspireMultiCSV(Node):
 
     def start_pregrasp(self, detected_object):
         csv_file = self.csv_map[detected_object]
-        file_path = os.path.join(get_package_share_directory("inspire_hand"), "rokoko_csv", csv_file)
+        file_path = os.path.join(get_package_share_directory("nano_hand"), "rokoko_csv", csv_file)
         self.current_df = pd.read_csv(file_path)
         self.get_logger().info(f"Streaming 1st row of {csv_file}.")
         if not self.current_df.empty and not self.stop_flag:
             row = self.current_df.iloc[0]
             msg = JointTrajectory()
-            msg.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+            msg.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5', 'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
             point = JointTrajectoryPoint()
             point.positions = self.extract_positions(row)
             point.time_from_start.sec = 0
@@ -199,11 +197,9 @@ class EMGToInspireMultiCSV(Node):
             self.get_logger().warn(f"No CSV mapped for unknown object")
 
         
-
-
 def main(args=None):
     rclpy.init(args=args)
-    node = EMGToInspireMultiCSV()
+    node = EMGToNanoMultiCSV()
     rclpy.spin(node)
     node.destroy_node()
     rclpy.shutdown()
