@@ -1,0 +1,526 @@
+<?xml version="1.0"?>
+<robot name="nanohand">
+
+  <!-- NanoHand 10-DOF URDF with Mimic Joints -->
+  <!-- 3 curl joints per finger: MCP (controlled) + PIP (mimic) + DIP (mimic) -->
+  <!-- UPDATE mimic multipliers after physical measurement with protractor! -->
+
+  <!-- ===== PALM ===== -->
+  <link name="palm">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/palm.stl"/></geometry>
+      <material name="palm_mat"><color rgba="0.9 0.75 0.2 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/palm.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.15"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="0.0001" iyy="0.0001" izz="0.0001" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ===== PINKY (wiggle + 3 curl joints) ===== -->
+  <!-- Wiggle joint at MCP -->
+  <joint name="pinky_wiggle" type="revolute">
+    <parent link="palm"/>
+    <child link="pinky_base"/>
+    <origin xyz="0.057168 -0.015536 0.018012" rpy="0 0 0"/>
+    <axis xyz="0.0000 1.0000 0.0000"/>
+    <limit lower="-0.256" upper="0.256" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="pinky_base">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- MCP curl joint (CONTROLLED by servo) -->
+  <joint name="pinky_curl" type="revolute">
+    <parent link="pinky_base"/>
+    <child link="pinky_knuckle"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-0.9606 0.0000 -0.2778"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="pinky_knuckle">
+    <visual>
+      <origin xyz="-0.057168 0.015536 -0.018012" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_knuckle_section.stl"/></geometry>
+      <material name="pinky_knuckle_mat"><color rgba="0.85 0.7 0.15 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.057168 0.015536 -0.018012" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_knuckle_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- PIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.7 after physical measurement! -->
+  <joint name="pinky_curl_pip" type="revolute">
+    <parent link="pinky_knuckle"/>
+    <child link="pinky_mid"/>
+    <origin xyz="0.013926 -0.006788 -0.037303" rpy="0 0 0"/>
+    <axis xyz="-0.9606 0.0000 -0.2778"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="pinky_curl" multiplier="0.7" offset="0.0"/>
+  </joint>
+
+  <link name="pinky_mid">
+    <visual>
+      <origin xyz="-0.071094 0.022325 0.019291" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_mid_section.stl"/></geometry>
+      <material name="pinky_mid_mat"><color rgba="0.8 0.65 0.12 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.071094 0.022325 0.019291" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_mid_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.004"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- DIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.5 after physical measurement! -->
+  <joint name="pinky_curl_dip" type="revolute">
+    <parent link="pinky_mid"/>
+    <child link="pinky_tip"/>
+    <origin xyz="0.006182 -0.006283 -0.028732" rpy="0 0 0"/>
+    <axis xyz="-0.9606 0.0000 -0.2778"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="pinky_curl" multiplier="0.5" offset="0.0"/>
+  </joint>
+
+  <link name="pinky_tip">
+    <visual>
+      <origin xyz="-0.077276 0.028608 0.048023" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_tip_section.stl"/></geometry>
+      <material name="pinky_tip_mat"><color rgba="0.75 0.6 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.077276 0.028608 0.048023" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Pinky_tip_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ===== RING (wiggle + 3 curl joints) ===== -->
+  <!-- Wiggle joint at MCP -->
+  <joint name="ring_wiggle" type="revolute">
+    <parent link="palm"/>
+    <child link="ring_base"/>
+    <origin xyz="0.041630 -0.009469 0.007289" rpy="0 0 0"/>
+    <axis xyz="0.0000 1.0000 0.0000"/>
+    <limit lower="-0.256" upper="0.256" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="ring_base">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- MCP curl joint (CONTROLLED by servo) -->
+  <joint name="ring_curl" type="revolute">
+    <parent link="ring_base"/>
+    <child link="ring_knuckle"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-0.9874 0.0000 -0.1582"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="ring_knuckle">
+    <visual>
+      <origin xyz="-0.041630 0.009469 -0.007289" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_knuckle_section.stl"/></geometry>
+      <material name="ring_knuckle_mat"><color rgba="0.85 0.7 0.15 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.041630 0.009469 -0.007289" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_knuckle_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- PIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.7 after physical measurement! -->
+  <joint name="ring_curl_pip" type="revolute">
+    <parent link="ring_knuckle"/>
+    <child link="ring_mid"/>
+    <origin xyz="0.008798 -0.005417 -0.045473" rpy="0 0 0"/>
+    <axis xyz="-0.9874 0.0000 -0.1582"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="ring_curl" multiplier="0.7" offset="0.0"/>
+  </joint>
+
+  <link name="ring_mid">
+    <visual>
+      <origin xyz="-0.050428 0.014886 0.038184" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_mid_section.stl"/></geometry>
+      <material name="ring_mid_mat"><color rgba="0.8 0.65 0.12 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.050428 0.014886 0.038184" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_mid_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.004"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- DIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.5 after physical measurement! -->
+  <joint name="ring_curl_dip" type="revolute">
+    <parent link="ring_mid"/>
+    <child link="ring_tip"/>
+    <origin xyz="0.004166 -0.010332 -0.030832" rpy="0 0 0"/>
+    <axis xyz="-0.9874 0.0000 -0.1582"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="ring_curl" multiplier="0.5" offset="0.0"/>
+  </joint>
+
+  <link name="ring_tip">
+    <visual>
+      <origin xyz="-0.054594 0.025218 0.069016" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_tip_section.stl"/></geometry>
+      <material name="ring_tip_mat"><color rgba="0.75 0.6 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.054594 0.025218 0.069016" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Ring_tip_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ===== MIDDLE (wiggle + 3 curl joints) ===== -->
+  <!-- Wiggle joint at MCP -->
+  <joint name="middle_wiggle" type="revolute">
+    <parent link="palm"/>
+    <child link="middle_base"/>
+    <origin xyz="0.023834 -0.004604 -0.000670" rpy="0 0 0"/>
+    <axis xyz="0.0000 1.0000 0.0000"/>
+    <limit lower="-0.256" upper="0.256" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="middle_base">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- MCP curl joint (CONTROLLED by servo) -->
+  <joint name="middle_curl" type="revolute">
+    <parent link="middle_base"/>
+    <child link="middle_knuckle"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-1.0000 -0.0000 0.0008"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="middle_knuckle">
+    <visual>
+      <origin xyz="-0.023834 0.004604 0.000670" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_knuckle_section.stl"/></geometry>
+      <material name="middle_knuckle_mat"><color rgba="0.85 0.7 0.15 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.023834 0.004604 0.000670" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_knuckle_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- PIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.7 after physical measurement! -->
+  <joint name="middle_curl_pip" type="revolute">
+    <parent link="middle_knuckle"/>
+    <child link="middle_mid"/>
+    <origin xyz="-0.000673 -0.000639 -0.047688" rpy="0 0 0"/>
+    <axis xyz="-1.0000 -0.0000 0.0008"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="middle_curl" multiplier="0.7" offset="0.0"/>
+  </joint>
+
+  <link name="middle_mid">
+    <visual>
+      <origin xyz="-0.023161 0.005243 0.048359" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_mid_section.stl"/></geometry>
+      <material name="middle_mid_mat"><color rgba="0.8 0.65 0.12 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.023161 0.005243 0.048359" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_mid_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.004"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- DIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.5 after physical measurement! -->
+  <joint name="middle_curl_dip" type="revolute">
+    <parent link="middle_mid"/>
+    <child link="middle_tip"/>
+    <origin xyz="0.000477 -0.003454 -0.034368" rpy="0 0 0"/>
+    <axis xyz="-1.0000 -0.0000 0.0008"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="middle_curl" multiplier="0.5" offset="0.0"/>
+  </joint>
+
+  <link name="middle_tip">
+    <visual>
+      <origin xyz="-0.023638 0.008697 0.082727" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_tip_section.stl"/></geometry>
+      <material name="middle_tip_mat"><color rgba="0.75 0.6 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.023638 0.008697 0.082727" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Middle_tip_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ===== INDEX (wiggle + 3 curl joints) ===== -->
+  <!-- Wiggle joint at MCP -->
+  <joint name="index_wiggle" type="revolute">
+    <parent link="palm"/>
+    <child link="index_base"/>
+    <origin xyz="0.003266 -0.006620 0.003480" rpy="0 0 0"/>
+    <axis xyz="0.0000 1.0000 0.0000"/>
+    <limit lower="-0.256" upper="0.256" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="index_base">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- MCP curl joint (CONTROLLED by servo) -->
+  <joint name="index_curl" type="revolute">
+    <parent link="index_base"/>
+    <child link="index_knuckle"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-0.9900 -0.0000 0.1413"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="index_knuckle">
+    <visual>
+      <origin xyz="-0.003266 0.006620 -0.003480" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_knuckle_section.stl"/></geometry>
+      <material name="index_knuckle_mat"><color rgba="0.85 0.7 0.15 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.003266 0.006620 -0.003480" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_knuckle_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- PIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.7 after physical measurement! -->
+  <joint name="index_curl_pip" type="revolute">
+    <parent link="index_knuckle"/>
+    <child link="index_mid"/>
+    <origin xyz="-0.008028 -0.002346 -0.045583" rpy="0 0 0"/>
+    <axis xyz="-0.9900 -0.0000 0.1413"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="index_curl" multiplier="0.7" offset="0.0"/>
+  </joint>
+
+  <link name="index_mid">
+    <visual>
+      <origin xyz="0.004762 0.008966 0.042103" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_mid_section.stl"/></geometry>
+      <material name="index_mid_mat"><color rgba="0.8 0.65 0.12 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0.004762 0.008966 0.042103" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_mid_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.004"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- DIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.5 after physical measurement! -->
+  <joint name="index_curl_dip" type="revolute">
+    <parent link="index_mid"/>
+    <child link="index_tip"/>
+    <origin xyz="-0.003517 -0.004590 -0.032261" rpy="0 0 0"/>
+    <axis xyz="-0.9900 -0.0000 0.1413"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="index_curl" multiplier="0.5" offset="0.0"/>
+  </joint>
+
+  <link name="index_tip">
+    <visual>
+      <origin xyz="0.008279 0.013556 0.074364" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_tip_section.stl"/></geometry>
+      <material name="index_tip_mat"><color rgba="0.75 0.6 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0.008279 0.013556 0.074364" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Index_tip_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- ===== THUMB (wiggle + 3 curl joints) ===== -->
+  <!-- Wiggle joint at MCP -->
+  <joint name="thumb_wiggle" type="revolute">
+    <parent link="palm"/>
+    <child link="thumb_base"/>
+    <origin xyz="0.015614 -0.037621 0.060954" rpy="0 0 0"/>
+    <axis xyz="0.0000 1.0000 0.0000"/>
+    <limit lower="-0.5" upper="0.5" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="thumb_base">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- MCP curl joint (CONTROLLED by servo) -->
+  <joint name="thumb_curl" type="revolute">
+    <parent link="thumb_base"/>
+    <child link="thumb_knuckle"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0.9943 0.0000 -0.1066"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+  </joint>
+
+  <link name="thumb_knuckle">
+    <visual>
+      <origin xyz="-0.015614 0.037621 -0.060954" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_knuckle_section.stl"/></geometry>
+      <material name="thumb_knuckle_mat"><color rgba="0.85 0.7 0.15 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.015614 0.037621 -0.060954" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_knuckle_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.005"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- PIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.7 after physical measurement! -->
+  <joint name="thumb_curl_pip" type="revolute">
+    <parent link="thumb_knuckle"/>
+    <child link="thumb_mid"/>
+    <origin xyz="-0.005241 -0.037057 -0.021395" rpy="0 0 0"/>
+    <axis xyz="0.9943 0.0000 -0.1066"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="thumb_curl" multiplier="0.7" offset="0.0"/>
+  </joint>
+
+  <link name="thumb_mid">
+    <visual>
+      <origin xyz="-0.010374 0.074678 -0.039559" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_mid_section.stl"/></geometry>
+      <material name="thumb_mid_mat"><color rgba="0.8 0.65 0.12 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.010374 0.074678 -0.039559" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_mid_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.004"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- DIP curl joint (MIMIC - follows MCP) -->
+  <!-- UPDATE multiplier=0.5 after physical measurement! -->
+  <joint name="thumb_curl_dip" type="revolute">
+    <parent link="thumb_mid"/>
+    <child link="thumb_tip"/>
+    <origin xyz="-0.001268 -0.024596 -0.029024" rpy="0 0 0"/>
+    <axis xyz="0.9943 0.0000 -0.1066"/>
+    <limit lower="0.0" upper="1.57" effort="1.0" velocity="3.0"/>
+    <mimic joint="thumb_curl" multiplier="0.5" offset="0.0"/>
+  </joint>
+
+  <link name="thumb_tip">
+    <visual>
+      <origin xyz="-0.009105 0.099274 -0.010535" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_tip_section.stl"/></geometry>
+      <material name="thumb_tip_mat"><color rgba="0.75 0.6 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="-0.009105 0.099274 -0.010535" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/Thumb_tip_section.stl"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.003"/>
+      <origin xyz="0 0 0"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+</robot>

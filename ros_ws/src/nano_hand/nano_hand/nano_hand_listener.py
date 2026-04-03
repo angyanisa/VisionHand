@@ -12,6 +12,8 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from hamsa import firmware
 from hamsa import hand
 
+DELAY = 0.1
+
 class NanoHandDriver(Node):
     def __init__(self):
         super().__init__('nano_hand_listener')
@@ -47,16 +49,26 @@ class NanoHandDriver(Node):
 
     def send_joint_positions(self, positions):
         try:
-            hand.wiggle_pinky(positions[0], 100)
-            hand.curl_pinky(positions[1], 100)
-            hand.wiggle_ring(positions[2], 100)
-            hand.curl_ring(positions[3], 100)
-            hand.wiggle_middle(positions[4], 100)
-            hand.curl_middle(positions[5], 100)
-            hand.wiggle_index(positions[6], 100)
-            hand.curl_index(positions[7], 100)
-            hand.wiggle_thumb(positions[8], 100)
-            hand.curl_thumb(positions[9], 100)
+            hand.wiggle_pinky(positions[0], 50)
+            # time.sleep(DELAY)
+            hand.curl_pinky(positions[1], 50)
+            # time.sleep(DELAY)
+            hand.wiggle_ring(positions[2], 50)
+            # time.sleep(DELAY)
+            hand.curl_ring(positions[3], 50)
+            # time.sleep(DELAY)
+            hand.wiggle_middle(positions[4], 50)
+            # time.sleep(DELAY)
+            hand.curl_middle(positions[5], 50)
+            # time.sleep(DELAY)
+            hand.wiggle_index(positions[6], 50)
+            # time.sleep(DELAY)
+            hand.curl_index(positions[7], 50)
+            # time.sleep(DELAY)
+            hand.wiggle_thumb(positions[8], 50)
+            # time.sleep(DELAY)
+            hand.curl_thumb(positions[9], 50)
+            # time.sleep(DELAY)
 
             self.get_logger().info(f"Sent mapped joint command: {positions}")
 

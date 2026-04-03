@@ -66,8 +66,8 @@ class EMGToNanoMultiCSV(Node):
         else:
             self.calibration = None
 
-        self.max_open = [0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0]
-        self.min_closure = [0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 0.8]
+        self.max_open = [1.0] * N_SERVOS
+        self.min_closure = [0.0] * N_SERVOS
         self.get_logger().info("EMG to Nano Hand multi-CSV node started.")
 
     def normalize_with_calibration(self, angle, dof):
@@ -107,6 +107,7 @@ class EMGToNanoMultiCSV(Node):
                 msg.points.append(point)
                 self.pub.publish(msg)
                 time.sleep(self.frame_delay)
+                self.get_logger().info(f"Sent mapped joint command: {point.positions}")
             self.current_df = None
         else:
             self.get_logger().info(f"Current dataframe is None!")
@@ -126,7 +127,7 @@ class EMGToNanoMultiCSV(Node):
             msg = JointTrajectory()
             msg.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5', 'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
             point = JointTrajectoryPoint()
-            point.positions = self.max_open
+            point.positions = [0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0, 0.5, 1.0]
             point.time_from_start.sec = 0
             point.time_from_start.nanosec = int(self.frame_delay * 1e9)
             msg.points.append(point)

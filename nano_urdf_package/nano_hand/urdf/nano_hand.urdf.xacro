@@ -1,0 +1,18 @@
+</xacro:macro>
+
+    <xacro:arg name="robot_namespace"  default=""/>
+    <xacro:arg name="standalone"  default="true"/>
+    <xacro:property name="test_value" value="$(arg standalone)" />
+
+    <xacro:if value="${test_value}">
+    
+        <xacro:property name="this_robot_name" value="" />
+
+    </xacro:if>
+
+    <xacro:my_robot robot_name="${this_robot_name}" />
+    
+<?xml version="1.0" ?>
+<xacro:macro name="my_robot" params="robot_name">
+<xacro:property name="robot_prefix" value="${robot_name}" />
+<robot name="fifi" version="1.0"/>

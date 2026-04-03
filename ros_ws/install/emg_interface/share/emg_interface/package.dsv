@@ -4,3 +4,6 @@ source;share/emg_interface/hook/pythonpath.sh
 source;share/emg_interface/hook/ament_prefix_path.ps1
 source;share/emg_interface/hook/ament_prefix_path.dsv
 source;share/emg_interface/hook/ament_prefix_path.sh
+source;../../build/emg_interface/share/emg_interface/hook/pythonpath_develop.ps1
+source;../../build/emg_interface/share/emg_interface/hook/pythonpath_develop.dsv
+source;../../build/emg_interface/share/emg_interface/hook/pythonpath_develop.sh
