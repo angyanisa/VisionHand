@@ -34,6 +34,10 @@ setup(
         (os.path.join('share', package_name, 'urdf/orca/visual'), glob('urdf/orca/visual/*.stl')),
         (os.path.join('share', package_name, 'urdf/orca/collision'), glob('urdf/orca/collision/*.stl')),
 
+        # Install Nano Hand files
+        (os.path.join('share', package_name, 'urdf/nano'), glob('urdf/nano/*.urdf')),
+        (os.path.join('share', package_name, 'urdf/nano/meshes'), glob('urdf/nano/meshes/*.stl')),
+
         # Install CSV files
         (os.path.join('share', package_name, 'data'), glob('data/*.csv')),
     ],
@@ -53,6 +57,7 @@ setup(
             'orca_retargeting = hands.orca_retargeting:main',
             'inspire_retargeting = hands.inspire_retargeting:main',
             'leap_retargeting = hands.leap_retargeting:main',
+            'nano_retargeting = hands.nano_retargeting:main',
             'control_type_publisher = hands.control_type_publisher:main',
             'orca_hardware_control = hands.orca_hardware_control:main',
             'fingertip_error_plotter = hands.fingertip_error_plotter:main',

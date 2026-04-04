@@ -73,7 +73,7 @@ class NanoRetargeting(Node):
 
         # Load URDF
         share_directory = get_package_share_directory('hands')
-        urdf_path = os.path.join(share_directory, 'urdf', 'nano', 'nanohand_test.urdf')
+        urdf_path = os.path.join(share_directory, 'urdf', 'nano', 'nano_hand_right.urdf')
         try:
             self.robot_id = p.loadURDF(urdf_path, useFixedBase=True)
             self.get_logger().info(f'Loaded URDF from: {urdf_path}')
