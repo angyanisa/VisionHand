@@ -23,18 +23,6 @@
     </inertial>
   </link>
 
-  <!-- Visualization / RViz convenience frame.
-       Keep palm as the kinematic root so existing PyBullet joint indices do not change.
-       RViz can use `base` as the fixed frame; the 180° X rotation flips the hand upright
-       relative to the imported CAD mesh orientation. -->
-  <link name="base"/>
-  <joint name="palm_to_base" type="fixed">
-    <parent link="palm"/>
-    <child link="base"/>
-    <origin xyz="0 0 0" rpy="3.141592653589793 0 0"/>
-  </joint>
-
-
   <!-- ===== PINKY (wiggle + 3 curl joints) ===== -->
   <!-- Wiggle joint at MCP -->
   <joint name="pinky_wiggle" type="revolute">

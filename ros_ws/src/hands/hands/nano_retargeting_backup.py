@@ -309,7 +309,7 @@ class NanoRetargeting(Node):
         }
         for i, (finger_name, position) in enumerate(targets_dict.items()):
             marker = Marker()
-            marker.header.frame_id = 'base'
+            marker.header.frame_id = 'palm'
             marker.header.stamp = self.get_clock().now().to_msg()
             marker.ns = 'fingertip_targets'
             marker.id = i
@@ -318,7 +318,6 @@ class NanoRetargeting(Node):
             marker.pose.position.x = float(position[0])
             marker.pose.position.y = float(position[1])
             marker.pose.position.z = float(position[2])
-            marker.pose.orientation.w = 1.0
             marker.scale.x = marker.scale.y = marker.scale.z = 0.01
             marker.color.a = 1.0
             r, g, b = colors.get(finger_name, (1.0, 1.0, 1.0))
@@ -399,42 +398,23 @@ class NanoRetargeting(Node):
         # Propagate tendon coupling to PIP and DIP
         self._apply_mimic_joints(joint_angles)
 
-        # # Visualise fingertip markers using palm-relative Rokoko positions
-        # inspire_tips_in_world = {}
-        # palm_state = p.getLinkState(self.robot_id, self.palm_link_id) if self.palm_link_id is not None else None
-        # if palm_state is not None:
-        #     palm_pos = np.array(palm_state[0])
-        #     palm_cols = ['RightHand_position_x', 'RightHand_position_y', 'RightHand_position_z']
-        #     if all(col in parsed_data for col in palm_cols):
-        #         rokoko_palm = np.array([parsed_data[col] for col in palm_cols], dtype=float)
-        #         for finger_name in self.tip_position_mapping:
-        #             rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
-        #             if rokoko_tip is not None:
-        #                 rel = rokoko_tip - rokoko_palm
-        #                 inspire_tips_in_world[finger_name] = palm_pos + np.array(
-        #                     self.rotation_rokoko_to_nano(rel))
+        # Visualise fingertip markers using palm-relative Rokoko positions
+        inspire_tips_in_world = {}
+        palm_state = p.getLinkState(self.robot_id, self.palm_link_id) if self.palm_link_id is not None else None
+        if palm_state is not None:
+            palm_pos = np.array(palm_state[0])
+            palm_cols = ['RightHand_position_x', 'RightHand_position_y', 'RightHand_position_z']
+            if all(col in parsed_data for col in palm_cols):
+                rokoko_palm = np.array([parsed_data[col] for col in palm_cols], dtype=float)
+                for finger_name in self.tip_position_mapping:
+                    rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
+                    if rokoko_tip is not None:
+                        rel = rokoko_tip - rokoko_palm
+                        inspire_tips_in_world[finger_name] = palm_pos + np.array(
+                            self.rotation_rokoko_to_nano(rel))
 
-        # if inspire_tips_in_world:
-        #     self.publish_target_markers(inspire_tips_in_world)
-
-        # Visualise fingertip markers using FK positions from PyBullet.
-        # After resetJointState above, getLinkState gives the true world-frame
-        # fingertip position.  We express each tip relative to the PyBullet
-        # world origin — which maps directly onto the 'base' RViz frame because
-        # the URDF root (palm) is loaded at the world origin with useFixedBase.
-        # The 'base' link has a 180° X flip relative to 'palm', but PyBullet
-        # works in the 'palm' world frame.  To get coordinates in the 'base'
-        # frame we apply the same 180° X rotation: [x, y, z] → [x, -y, -z].
-        targets = {}
-        for finger_name, tip_idx in self.fingertip_link_indices.items():
-            link_state = p.getLinkState(self.robot_id, tip_idx, computeForwardKinematics=True)
-            pos_palm_world = np.array(link_state[0])   # world frame == palm frame
-            # Rotate into 'base' frame (180° around X)
-            pos_base = np.array([pos_palm_world[0], -pos_palm_world[1], -pos_palm_world[2]])
-            targets[finger_name] = pos_base
-
-        if targets:
-            self.publish_target_markers(targets)
+        if inspire_tips_in_world:
+            self.publish_target_markers(inspire_tips_in_world)
 
         return [joint_angles.get(name, 0.0) for name in self.joint_names]
 
@@ -502,11 +482,7 @@ class NanoRetargeting(Node):
         }
         self._apply_mimic_joints(joint_angles)
 
-        # Flip palm-world → base frame (180° X rotation in URDF base joint)
-        tips_in_base = {
-            k: np.array([v[0], -v[1], -v[2]]) for k, v in inspire_tips_in_world.items()
-        }
-        self.publish_target_markers(tips_in_base)
+        self.publish_target_markers(inspire_tips_in_world)
         return [joint_angles.get(name, 0.0) for name in self.joint_names]
 
     def jparse_ik_control(self, parsed_data):
@@ -634,11 +610,7 @@ class NanoRetargeting(Node):
             self.get_logger().info(f'Processed {fingers_processed}/5 fingers')
 
         if targets_for_viz:
-            # Flip palm-world → base frame (180° X rotation in URDF base joint)
-            tips_in_base = {
-                k: np.array([v[0], -v[1], -v[2]]) for k, v in targets_for_viz.items()
-            }
-            self.publish_target_markers(tips_in_base)
+            self.publish_target_markers(targets_for_viz)
 
         # Update independent joints in PyBullet, then propagate mimics
         for pb_idx, jname in self.pybullet_to_nano.items():
