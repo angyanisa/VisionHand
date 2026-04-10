@@ -205,6 +205,31 @@ class NanoRetargeting(Node):
             },
         }
 
+        # Build a table of safe MCP upper limits: the mimic multipliers can
+        # drive PIP/DIP past 1.57 rad even when MCP itself is within [0,1.57].
+        # Pre-compute the tightest ceiling per curl joint so we can clamp input
+        # before it ever reaches _apply_mimic_joints.
+        # e.g. pinky DIP multiplier=3.94 → safe MCP ceil = 1.57/3.94 ≈ 0.40 rad
+        self._mcp_safe_upper: dict[str, float] = {}
+        MIMIC_UPPER = 1.57
+        for _, (parent_name, _, multiplier, _) in self.mimic_joints.items():
+            if multiplier > 0:
+                safe = MIMIC_UPPER / multiplier
+                existing = self._mcp_safe_upper.get(parent_name, float('inf'))
+                self._mcp_safe_upper[parent_name] = min(existing, safe)
+        # Never tighten beyond the URDF curl upper limit itself
+        for jname, data in self.joints.items():
+            urdf_upper = data['limits'][1]
+            if jname in self._mcp_safe_upper:
+                self._mcp_safe_upper[jname] = min(self._mcp_safe_upper[jname], urdf_upper)
+            else:
+                self._mcp_safe_upper[jname] = urdf_upper
+
+        self.get_logger().info(
+            'Safe MCP upper limits (rad): ' +
+            ', '.join(f'{k}={v:.3f}' for k, v in self._mcp_safe_upper.items())
+        )
+
         # Rest poses (all movable joints including mimics)
         self.rest_poses = [p.getJointState(self.robot_id, i)[0] for i in self.movable_joints]
 
@@ -290,12 +315,18 @@ class NanoRetargeting(Node):
         Compute PIP and DIP angles from their MCP curl parent and update
         PyBullet state. Both PIP and DIP couple to the MCP (not each other)
         because the same tendon drives all three phalanges.
-        joint_angles dict is NOT mutated — mimic joints are not published
-        as independent joints since they are fully determined by the curl.
+
+        Mimic angles are clamped to their own URDF limits [0, 1.57] so that
+        large multipliers (e.g. 3.94 for pinky DIP) cannot drive a link past
+        its physical stop and into the palm or an adjacent finger.
+        joint_angles dict is NOT mutated.
         """
+        MIMIC_LOWER = 0.0
+        MIMIC_UPPER = 1.57   # matches <limit> upper in URDF for all PIP/DIP joints
         for mimic_pb_idx, (parent_name, _, multiplier, offset) in self.mimic_joints.items():
             if parent_name in joint_angles:
                 mimic_angle = joint_angles[parent_name] * multiplier + offset
+                mimic_angle = max(MIMIC_LOWER, min(MIMIC_UPPER, mimic_angle))
                 p.resetJointState(self.robot_id, mimic_pb_idx, mimic_angle)
 
     def publish_target_markers(self, targets_dict):
@@ -386,9 +417,11 @@ class NanoRetargeting(Node):
         for nano_joint, rokoko_col in self.joint_mapping.items():
             val = parsed_data.get(rokoko_col, 0.0)
             rad = math.radians(val) if self.data_in_degrees else val
-            if nano_joint in self.joint_limits_rad:
-                lo, hi = self.joint_limits_rad[nano_joint]
-                rad = max(lo, min(hi, rad))
+            lo, hi = self.joint_limits_rad.get(nano_joint, (-math.pi, math.pi))
+            # Tighten the upper limit for curl joints so their mimic PIP/DIP
+            # joints stay within [0, 1.57] and don't drive fingers into the palm.
+            safe_hi = self._mcp_safe_upper.get(nano_joint, hi)
+            rad = max(lo, min(safe_hi, rad))
             joint_angles[nano_joint] = rad
 
         # Update independent joints in PyBullet
