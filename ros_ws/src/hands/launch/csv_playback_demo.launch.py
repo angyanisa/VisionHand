@@ -24,7 +24,8 @@ def launch_setup(context, *args, **kwargs):
         'orca': 'orca_retargeting',
         'inspire': 'inspire_retargeting',
         'leap': 'leap_retargeting',
-        'nano': 'nano_retargeting'
+        'nano': 'nano_retargeting',
+        'nano_physics': 'nano_retargeting_physics',
     }
 
     executable = retargeting_map.get(hand_type)
@@ -32,16 +33,14 @@ def launch_setup(context, *args, **kwargs):
         raise ValueError(f"Invalid hand_type '{hand_type}'. Must be one of: orca, inspire, leap, nano")
 
     # Get the path to the URDF file
-    # Use left URDF for inspire, right for others
-    if hand_type == 'inspire':
-        urdf_file = f'{hand_type}_hand_left.urdf'
-    else:
-        urdf_file = f'{hand_type}_hand_right.urdf'
+    # nano_physics shares the nano URDF; inspire uses the left variant
+    urdf_folder = {'inspire': 'inspire', 'nano_physics': 'nano'}.get(hand_type, hand_type)
+    urdf_base   = {'inspire': 'inspire_hand_left', 'nano_physics': 'nano_hand_right'}.get(
+                    hand_type, f'{hand_type}_hand_right')
     urdf_path = os.path.join(
         get_package_share_directory('hands'),
-        'urdf',
-        hand_type,
-        urdf_file
+        'urdf', urdf_folder,
+        f'{urdf_base}.urdf'
     )
 
     # Read URDF file directly (not using xacro since these are plain .urdf files)

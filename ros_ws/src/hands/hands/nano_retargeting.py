@@ -86,20 +86,20 @@ class NanoRetargeting(Node):
         # limits: [lower_rad, upper_rad] taken directly from URDF <limit> tags
         self.joints = {
             # Pinky
-            'pinky_wiggle': {'pb_idx': 0,  'limits': [-0.256, 0.256]},
-            'pinky_curl':   {'pb_idx': 1,  'limits': [0.0,    1.57 ]},
+            'pinky_wiggle': {'pb_idx': 0,  'limits': [-0.17,  0.26 ]},
+            'pinky_curl':   {'pb_idx': 1,  'limits': [0.0,    0.97 ]},
             # Ring
-            'ring_wiggle':  {'pb_idx': 4,  'limits': [-0.256, 0.256]},
-            'ring_curl':    {'pb_idx': 5,  'limits': [0.0,    1.57 ]},
+            'ring_wiggle':  {'pb_idx': 4,  'limits': [-0.2,   0.07 ]},
+            'ring_curl':    {'pb_idx': 5,  'limits': [0.0,    0.83 ]},
             # Middle
-            'middle_wiggle':{'pb_idx': 8,  'limits': [-0.256, 0.256]},
-            'middle_curl':  {'pb_idx': 9,  'limits': [0.0,    1.57 ]},
+            'middle_wiggle':{'pb_idx': 8,  'limits': [-0.13,  0.24 ]},
+            'middle_curl':  {'pb_idx': 9,  'limits': [0.0,    1.09 ]},
             # Index
-            'index_wiggle': {'pb_idx': 12, 'limits': [-0.256, 0.256]},
-            'index_curl':   {'pb_idx': 13, 'limits': [0.0,    1.57 ]},
-            # Thumb (wider wiggle range from URDF)
-            'thumb_wiggle': {'pb_idx': 16, 'limits': [-1.3,   1.3  ]},
-            'thumb_curl':   {'pb_idx': 17, 'limits': [0.0,    1.57 ]},
+            'index_wiggle': {'pb_idx': 12, 'limits': [-0.17,  0.17 ]},
+            'index_curl':   {'pb_idx': 13, 'limits': [0.0,    1.06 ]},
+            # Thumb
+            'thumb_wiggle': {'pb_idx': 16, 'limits': [-0.78,  1.48 ]},
+            'thumb_curl':   {'pb_idx': 17, 'limits': [0.0,    0.68 ]},
         }
 
         # ── Mimic joints (PIP and DIP, tendon-coupled to MCP curl) ────────────
@@ -108,20 +108,20 @@ class NanoRetargeting(Node):
         # multiplier values match URDF <mimic> tags — UPDATE after measurement.
         self.mimic_joints = {
             # Pinky
-            2:  ('pinky_curl',  1,  2.92, 0.0),  # pinky_curl_pip  (PIP)
-            3:  ('pinky_curl',  1,  3.94, 0.0),  # pinky_curl_dip  (DIP)
+            2:  ('pinky_curl',  1,  2.0,  0.0),  # pinky_curl_pip  (PIP)
+            3:  ('pinky_curl',  1,  2.23, 0.0),  # pinky_curl_dip  (DIP)
             # Ring
-            6:  ('ring_curl',   5,  2.31, 0.0),  # ring_curl_pip
-            7:  ('ring_curl',   5,  2.85, 0.0),  # ring_curl_dip
+            6:  ('ring_curl',   5,  1.5,  0.0),  # ring_curl_pip
+            7:  ('ring_curl',   5,  1.96, 0.0),  # ring_curl_dip
             # Middle
-            10: ('middle_curl', 9,  2.2,  0.0),  # middle_curl_pip
-            11: ('middle_curl', 9,  2.85, 0.0),  # middle_curl_dip
+            10: ('middle_curl', 9,  2.0,  0.0),  # middle_curl_pip
+            11: ('middle_curl', 9,  2.18, 0.0),  # middle_curl_dip
             # Index
-            14: ('index_curl',  13, 0.7,  0.0),  # index_curl_pip
-            15: ('index_curl',  13, 0.5,  0.0),  # index_curl_dip
+            14: ('index_curl',  13, 2.0,  0.0),  # index_curl_pip
+            15: ('index_curl',  13, 2.23, 0.0),  # index_curl_dip
             # Thumb
-            18: ('thumb_curl',  17, 0.71, 0.0),  # thumb_curl_pip
-            19: ('thumb_curl',  17, 0.54, 0.0),  # thumb_curl_dip
+            18: ('thumb_curl',  17, 0.83, 0.0),  # thumb_curl_pip
+            19: ('thumb_curl',  17, 2.0,  0.0),  # thumb_curl_dip
         }
 
         # ── Joint mapping: nano joint name → Rokoko CSV column ────────────────
@@ -129,8 +129,8 @@ class NanoRetargeting(Node):
         # wiggle → Metacarpophalangeal_ulnarDeviation (abduction/adduction)
         # Update Left/Right prefix to match your recording side.
         self.joint_mapping = {
-            'thumb_curl':    'RightDigit1Carpometacarpal_flexion',
-            'thumb_wiggle':  'RightDigit1Carpometacarpal_ulnarDeviation',
+            'thumb_curl':    'RightDigit1Metacarpophalangeal_flexion',
+            'thumb_wiggle':  'RightDigit1Metacarpophalangeal_ulnarDeviation',
             'index_curl':    'RightDigit2Metacarpophalangeal_flexion',
             'index_wiggle':  'RightDigit2Metacarpophalangeal_ulnarDeviation',
             'middle_curl':   'RightDigit3Metacarpophalangeal_flexion',
@@ -163,10 +163,32 @@ class NanoRetargeting(Node):
 
         self.find_link_indices()
 
-        # Joint limit arrays (independent joints only, sorted by pb_idx)
-        sorted_joints = sorted(self.joints.items(), key=lambda x: x[1]['pb_idx'])
-        self.lower_limits  = [j[1]['limits'][0] for j in sorted_joints]
-        self.upper_limits  = [j[1]['limits'][1] for j in sorted_joints]
+        # Joint limit arrays — must cover ALL movable joints in pb_idx order
+        # (PyBullet IK requires limit arrays of length == number of movable joints)
+        mimic_limits = {
+            2:  (0.0, 1.41),  # pinky_curl_pip
+            3:  (0.0, 1.64),  # pinky_curl_dip
+            6:  (0.0, 1.29),  # ring_curl_pip
+            7:  (0.0, 1.55),  # ring_curl_dip
+            10: (0.0, 1.65),  # middle_curl_pip
+            11: (0.0, 1.6 ),  # middle_curl_dip
+            14: (0.0, 1.65),  # index_curl_pip
+            15: (0.0, 1.64),  # index_curl_dip
+            18: (0.0, 0.66),  # thumb_curl_pip
+            19: (0.0, 1.65),  # thumb_curl_dip
+        }
+        indep_limits = {v['pb_idx']: v['limits'] for v in self.joints.values()}
+        self.lower_limits = []
+        self.upper_limits = []
+        for pb_idx in self.movable_joints:
+            if pb_idx in indep_limits:
+                lo, hi = indep_limits[pb_idx]
+            elif pb_idx in mimic_limits:
+                lo, hi = mimic_limits[pb_idx]
+            else:
+                lo, hi = -3.14, 3.14
+            self.lower_limits.append(lo)
+            self.upper_limits.append(hi)
         self.joint_ranges  = [u - l for l, u in zip(self.lower_limits, self.upper_limits)]
         self.joint_limits_rad = {name: data['limits'] for name, data in self.joints.items()}
         self.use_joint_limits = True
@@ -249,6 +271,7 @@ class NanoRetargeting(Node):
 
         self.control_type = 'direct'
         self.latest_rokoko_data = None
+        self._ik_prev_joint_angles = self.rest_poses.copy()
         self.get_logger().info('Nano Retargeting Node started')
 
     # ── Link discovery ────────────────────────────────────────────────────────
@@ -501,7 +524,17 @@ class NanoRetargeting(Node):
             self.get_logger().info(f'Fingertip IK: targeting {len(inspire_tips_in_world)} fingers')
 
         pb_to_movable_idx = {pb: i for i, pb in enumerate(self.movable_joints)}
-        current_joint_angles = self.rest_poses.copy()
+        current_joint_angles = self._ik_prev_joint_angles.copy()
+
+        # Max change per frame per joint — thumb gets a tighter clamp to prevent
+        # branch-flipping jitter from the underdetermined 2-DOF IK problem.
+        MAX_DELTA = {
+            'thumb':  0.05,  # ~3 deg/frame at 30Hz — tight to prevent branch jumps
+            'index':  0.15,
+            'middle': 0.15,
+            'ring':   0.15,
+            'pinky':  0.15,
+        }
 
         for finger_name in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             if finger_name not in inspire_tips_in_world:
@@ -520,13 +553,19 @@ class NanoRetargeting(Node):
                     maxNumIterations=200,
                     residualThreshold=1e-4,
                 )
+                max_delta = MAX_DELTA[finger_name]
                 for pb_idx in self.finger_chains[finger_name]['joint_indices']:
                     if pb_idx in pb_to_movable_idx:
                         movable_idx = pb_to_movable_idx[pb_idx]
-                        current_joint_angles[movable_idx] = ik_result[movable_idx]
-                        p.resetJointState(self.robot_id, pb_idx, ik_result[movable_idx])
+                        prev = current_joint_angles[movable_idx]
+                        clamped = prev + max(min(ik_result[movable_idx] - prev, max_delta), -max_delta)
+                        current_joint_angles[movable_idx] = clamped
+                        p.resetJointState(self.robot_id, pb_idx, clamped)
             except Exception as e:
                 self.get_logger().warn(f'IK failed for {finger_name}: {e}')
+
+        # Persist solution so next frame seeds IK from here (prevents inter-frame flipping)
+        self._ik_prev_joint_angles = current_joint_angles.copy()
 
         # Build joint_angles dict from IK result, then propagate mimics
         joint_angles = {
@@ -535,11 +574,13 @@ class NanoRetargeting(Node):
         }
         self._apply_mimic_joints(joint_angles)
 
-        # Flip palm-world → base frame (180° X rotation in URDF base joint)
-        tips_in_base = {
-            k: np.array([v[0], -v[1], -v[2]]) for k, v in inspire_tips_in_world.items()
-        }
-        self.publish_target_markers(tips_in_base)
+        # Visualise FK fingertip positions (same as direct mode — world frame → base frame)
+        targets = {}
+        for finger_name, tip_idx in self.fingertip_link_indices.items():
+            link_state = p.getLinkState(self.robot_id, tip_idx, computeForwardKinematics=True)
+            pos = np.array(link_state[0])
+            targets[finger_name] = np.array([pos[0], -pos[1], -pos[2]])
+        self.publish_target_markers(targets)
         return [joint_angles.get(name, 0.0) for name in self.joint_names]
 
     def jparse_ik_control(self, parsed_data):

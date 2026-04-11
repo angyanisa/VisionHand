@@ -58,6 +58,7 @@ setup(
             'inspire_retargeting = hands.inspire_retargeting:main',
             'leap_retargeting = hands.leap_retargeting:main',
             'nano_retargeting = hands.nano_retargeting:main',
+            'nano_retargeting_physics = hands.nano_retargeting_physics:main',
             'control_type_publisher = hands.control_type_publisher:main',
             'orca_hardware_control = hands.orca_hardware_control:main',
             'fingertip_error_plotter = hands.fingertip_error_plotter:main',
