@@ -214,11 +214,11 @@ class NanoRetargetingPhysics(Node):
         self.fingertip_link_indices = {}
         self.palm_link_id = None
         tip_link_names = {
-            'pinky_tip_end':  'pinky',
-            'ring_tip_end':   'ring',
-            'middle_tip_end': 'middle',
-            'index_tip_end':  'index',
-            'thumb_tip_end':  'thumb',
+            'pinky_tip':  'pinky',
+            'ring_tip':   'ring',
+            'middle_tip': 'middle',
+            'index_tip':  'index',
+            'thumb_tip':  'thumb',
         }
         PALM_PROXY_CHILD = 'pinky_base'
         for i in range(self.num_joints):
@@ -241,6 +241,10 @@ class NanoRetargetingPhysics(Node):
         if all(col in parsed_data for col in alt):
             return np.array([parsed_data[col] for col in alt], dtype=float)
         return None
+
+    def rotation_rokoko_to_nano(self, vec):
+        rx, ry, rz = vec
+        return [rz, -rx, ry]
 
     def _set_independent_targets(self, joint_angles):
         """Send position targets to all independent joints via motor control."""
@@ -414,10 +418,23 @@ class NanoRetargetingPhysics(Node):
         rokoko_palm_mapped = np.array(self._remap(rokoko_palm), dtype=float)
 
         EMA_ALPHA = 0.4
+
+        # ── Diagnostic: show what position keys exist in parsed_data ──────────
+        if not hasattr(self, '_pos_keys_logged'):
+            pos_keys = [k for k in parsed_data if 'position' in k.lower() or '_pos_' in k]
+            self.get_logger().info(f'[DIAG] Position keys in parsed_data: {pos_keys[:10]}')
+            self._pos_keys_logged = True
+
         ik_targets = {}
         for finger_name in ['index', 'middle', 'ring', 'pinky']:
             rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
             if rokoko_tip is None:
+                expected = self.tip_position_mapping[finger_name]
+                missing = [c for c in expected if c not in parsed_data]
+                self.get_logger().warn(
+                    f'No tip for {finger_name}. Missing: {missing}',
+                    once=True
+                )
                 continue
             raw = np.array(self._remap(rokoko_tip), dtype=float)
             raw_world = (raw - rokoko_palm_mapped) + nano_palm_in_world
@@ -428,22 +445,45 @@ class NanoRetargetingPhysics(Node):
             self._smoothed_targets[finger_name] = smoothed
             ik_targets[finger_name] = smoothed
 
+        self.get_logger().info(f'IK targets built for: {list(ik_targets.keys())}', once=True)
+
         # Build IK limit arrays over all movable joints
         movable_limits = self._build_movable_limits()
 
         current_poses = [p.getJointState(self.robot_id, i)[0] for i in self.movable_joints]
         pb_to_movable = {pb: i for i, pb in enumerate(self.movable_joints)}
 
+        # ── Diagnostic: compare IK targets to current FK positions ───────────
+        if not hasattr(self, '_diag_count'):
+            self._diag_count = 0
+        if self._diag_count < 1:
+            self._diag_count += 1
+            self.get_logger().info(
+                f'[DIAG] nano_palm={np.round(nano_palm_in_world,4)}, '
+                f'rokoko_palm_mapped={np.round(rokoko_palm_mapped,4)}'
+            )
+            for finger_name, target in ik_targets.items():
+                link_idx = self.fingertip_link_indices.get(finger_name)
+                if link_idx is not None:
+                    fk = p.getLinkState(self.robot_id, link_idx, computeForwardKinematics=True)
+                    fk_pos = np.array(fk[0])
+                    dist = np.linalg.norm(target - fk_pos)
+                    self.get_logger().info(
+                        f'[DIAG] {finger_name}: target={np.round(target,4)}, '
+                        f'fk={np.round(fk_pos,4)}, dist={dist:.4f}m'
+                    )
+
+        finger_joint_pbs = {
+            'index':  [self.joints['index_wiggle']['pb_idx'],  self.joints['index_curl']['pb_idx']],
+            'middle': [self.joints['middle_wiggle']['pb_idx'], self.joints['middle_curl']['pb_idx']],
+            'ring':   [self.joints['ring_wiggle']['pb_idx'],   self.joints['ring_curl']['pb_idx']],
+            'pinky':  [self.joints['pinky_wiggle']['pb_idx'],  self.joints['pinky_curl']['pb_idx']],
+        }
+
         for finger_name, target in ik_targets.items():
             link_idx = self.fingertip_link_indices.get(finger_name)
             if link_idx is None:
                 continue
-            finger_joint_pbs = {
-                'index':  [self.joints['index_wiggle']['pb_idx'],  self.joints['index_curl']['pb_idx']],
-                'middle': [self.joints['middle_wiggle']['pb_idx'], self.joints['middle_curl']['pb_idx']],
-                'ring':   [self.joints['ring_wiggle']['pb_idx'],   self.joints['ring_curl']['pb_idx']],
-                'pinky':  [self.joints['pinky_wiggle']['pb_idx'],  self.joints['pinky_curl']['pb_idx']],
-            }
             try:
                 ik_result = p.calculateInverseKinematics(
                     self.robot_id, link_idx, target,
@@ -454,25 +494,37 @@ class NanoRetargetingPhysics(Node):
                     maxNumIterations=200,
                     residualThreshold=1e-4,
                 )
+                if self._diag_count <= 3:
+                    curl_raw = ik_result[pb_to_movable[finger_joint_pbs[finger_name][1]]]
+                    wiggle_raw = ik_result[pb_to_movable[finger_joint_pbs[finger_name][0]]]
+                    self.get_logger().info(
+                        f'[DIAG IK] {finger_name}: curl_raw={curl_raw:.4f} wiggle_raw={wiggle_raw:.4f}'
+                    )
                 for pb_idx in finger_joint_pbs[finger_name]:
                     if pb_idx in pb_to_movable:
                         angle = ik_result[pb_to_movable[pb_idx]]
                         lo, hi = self.joints[self.pybullet_to_nano[pb_idx]]['limits']
-                        safe_hi = self._mcp_safe_upper.get(self.pybullet_to_nano[pb_idx], hi)
-                        angle = max(lo, min(safe_hi, angle))
+                        # Use actual URDF limits (not safe_hi) — mimic joints are
+                        # clamped independently in _set_mimic_targets
+                        angle = max(lo, min(hi, angle))
                         joint_angles[self.pybullet_to_nano[pb_idx]] = angle
                         current_poses[pb_to_movable[pb_idx]] = angle
             except Exception as e:
-                self.get_logger().warn(f'IK failed for {finger_name}: {e}')
-
+                self.get_logger().warn(f'IK failed for {finger_name}: {e}', once=True)
         self._set_independent_targets(joint_angles)
         self._set_mimic_targets(joint_angles)
         return self._step_and_read()
 
     def _remap(self, vec):
-        """Remap Rokoko character-space axes to PyBullet world axes."""
+        """Remap Rokoko character-space axes to PyBullet world axes.
+        Rokoko: x=right, y=up, z=forward (character space)
+        PyBullet nano hand: fingers extend in -z, spread in +x
+          Rokoko +z (forward) → PyBullet -x  (new_x = -rz)
+          Rokoko +x (right)   → PyBullet +y  (new_y =  rx)
+          Rokoko +y (up)      → PyBullet -z  (new_z = -ry)  ← open fingers → -z (correct)
+        """
         rx, ry, rz = vec
-        return [rz, -rx, ry]
+        return [-rz, rx, -ry]
 
     def _build_movable_limits(self):
         """Build lower/upper/range arrays over all movable joints for PyBullet IK."""

@@ -15,7 +15,7 @@ class VisualizationNode(Node):
         self.hand_type = self.get_parameter('hand_type').get_parameter_value().string_value
 
         # Validate hand_type
-        valid_hands = ['orca', 'inspire', 'leap', 'nano']
+        valid_hands = ['orca', 'inspire', 'leap', 'nano', 'nano_physics']
         if self.hand_type not in valid_hands:
             self.get_logger().error(f"Invalid hand_type '{self.hand_type}'. Must be one of: {valid_hands}")
             raise ValueError(f"Invalid hand_type: {self.hand_type}")

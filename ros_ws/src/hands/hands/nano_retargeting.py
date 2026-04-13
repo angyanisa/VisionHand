@@ -272,6 +272,7 @@ class NanoRetargeting(Node):
         self.control_type = 'direct'
         self.latest_rokoko_data = None
         self._ik_prev_joint_angles = self.rest_poses.copy()
+        self._ik_ema = self.rest_poses.copy()
         self.get_logger().info('Nano Retargeting Node started')
 
     # ── Link discovery ────────────────────────────────────────────────────────
@@ -497,9 +498,21 @@ class NanoRetargeting(Node):
     def fingertip_ik_control(self, parsed_data):
         """
         Fingertip IK using PyBullet calculateInverseKinematics.
-        Computes world-frame fingertip targets from palm-relative Rokoko data,
-        solves IK per finger sequentially, then propagates mimic joints.
+        Thumb uses direct joint mapping (stable — IK is underdetermined for 2-DOF thumb).
+        Fingers 2-5 use IK from Rokoko distal phalanx positions.
         """
+        # ── Thumb wiggle: direct from Rokoko (well-constrained, no IK needed) ──
+        # ── Thumb curl: solved via IK (ensures positional accuracy for finger contact) ──
+        # Setting wiggle first constrains the IK null-space so it only adjusts curl.
+        joint_angles = {}
+        wiggle_val = parsed_data.get(self.joint_mapping['thumb_wiggle'], 0.0)
+        wiggle_rad = math.radians(wiggle_val) if self.data_in_degrees else wiggle_val
+        lo, hi = self.joint_limits_rad['thumb_wiggle']
+        safe_hi = self._mcp_safe_upper.get('thumb_wiggle', hi)
+        thumb_wiggle_angle = max(lo, min(safe_hi, wiggle_rad))
+        joint_angles['thumb_wiggle'] = thumb_wiggle_angle
+        p.resetJointState(self.robot_id, self.joints['thumb_wiggle']['pb_idx'], thumb_wiggle_angle)
+
         palm_link_info = p.getLinkState(self.robot_id, self.palm_link_id, computeForwardKinematics=True)
         inspire_palm_in_world = np.array(palm_link_info[0], dtype=float)
 
@@ -526,15 +539,24 @@ class NanoRetargeting(Node):
         pb_to_movable_idx = {pb: i for i, pb in enumerate(self.movable_joints)}
         current_joint_angles = self._ik_prev_joint_angles.copy()
 
-        # Max change per frame per joint — thumb gets a tighter clamp to prevent
-        # branch-flipping jitter from the underdetermined 2-DOF IK problem.
+        # EMA alpha per finger — thumb uses heavy smoothing to suppress branch-flip jitter.
+        # Other fingers use lighter smoothing for responsiveness.
+        EMA_ALPHA = {
+            'thumb':  0.15,  # heavy: slow but stable
+            'index':  0.5,
+            'middle': 0.5,
+            'ring':   0.5,
+            'pinky':  0.5,
+        }
         MAX_DELTA = {
-            'thumb':  0.05,  # ~3 deg/frame at 30Hz — tight to prevent branch jumps
+            'thumb':  0.04,
             'index':  0.15,
             'middle': 0.15,
             'ring':   0.15,
             'pinky':  0.15,
         }
+        if not hasattr(self, '_ik_ema'):
+            self._ik_ema = current_joint_angles.copy()
 
         for finger_name in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             if finger_name not in inspire_tips_in_world:
@@ -553,25 +575,38 @@ class NanoRetargeting(Node):
                     maxNumIterations=200,
                     residualThreshold=1e-4,
                 )
+                alpha = EMA_ALPHA[finger_name]
                 max_delta = MAX_DELTA[finger_name]
                 for pb_idx in self.finger_chains[finger_name]['joint_indices']:
                     if pb_idx in pb_to_movable_idx:
                         movable_idx = pb_to_movable_idx[pb_idx]
+                        raw = ik_result[movable_idx]
+                        # EMA on raw IK output suppresses branch-flip spikes
+                        smoothed = alpha * raw + (1.0 - alpha) * self._ik_ema[movable_idx]
+                        self._ik_ema[movable_idx] = smoothed
+                        # Then clamp rate-of-change from previous frame
                         prev = current_joint_angles[movable_idx]
-                        clamped = prev + max(min(ik_result[movable_idx] - prev, max_delta), -max_delta)
+                        clamped = prev + max(min(smoothed - prev, max_delta), -max_delta)
                         current_joint_angles[movable_idx] = clamped
                         p.resetJointState(self.robot_id, pb_idx, clamped)
             except Exception as e:
                 self.get_logger().warn(f'IK failed for {finger_name}: {e}')
 
+        # Restore thumb_wiggle to direct Rokoko value — IK may have drifted it
+        thumb_wiggle_pb = self.joints['thumb_wiggle']['pb_idx']
+        if thumb_wiggle_pb in pb_to_movable_idx:
+            current_joint_angles[pb_to_movable_idx[thumb_wiggle_pb]] = thumb_wiggle_angle
+            p.resetJointState(self.robot_id, thumb_wiggle_pb, thumb_wiggle_angle)
+
         # Persist solution so next frame seeds IK from here (prevents inter-frame flipping)
         self._ik_prev_joint_angles = current_joint_angles.copy()
 
-        # Build joint_angles dict from IK result, then propagate mimics
+        # Build joint_angles dict from IK result, propagate mimics
         joint_angles = {
             self.pybullet_to_nano[pb]: current_joint_angles[pb_to_movable_idx[pb]]
             for pb in self.pybullet_to_nano if pb in pb_to_movable_idx
         }
+        joint_angles['thumb_wiggle'] = thumb_wiggle_angle
         self._apply_mimic_joints(joint_angles)
 
         # Visualise FK fingertip positions (same as direct mode — world frame → base frame)

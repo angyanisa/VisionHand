@@ -64,7 +64,8 @@ setup(
             'fingertip_error_plotter = hands.fingertip_error_plotter:main',
             'inspire_hardware_control = hands.inspire_hardware_control:main',
             'leap_hardware_control = hands.leap_hardware_control:main',
-            'vive_listener = hands.vive_listener:main'
+            'vive_listener = hands.vive_listener:main',
+            'nano_hardware_control = hands.nano_hardware_control:main'
         ],
     },
 )
