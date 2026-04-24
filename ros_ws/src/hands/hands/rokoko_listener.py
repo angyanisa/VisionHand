@@ -247,8 +247,8 @@ class RokokoListener(Node):
 
         if 'RightDigit2DistalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit2DistalInterphalangeal_flexion', 0)  # Negated
-            pitch = row.get('RightDigit2DistalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit2DistalInterphalangeal_pronation', 0)
+            pitch = row.get('RightDigit2Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit2Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightIndexDistal'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
@@ -262,15 +262,15 @@ class RokokoListener(Node):
 
         if 'RightDigit3ProximalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit3ProximalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit3ProximalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit3ProximalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit3Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit3Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightMiddleMedial'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
         if 'RightDigit3DistalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit3DistalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit3DistalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit3DistalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit3Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit3Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightMiddleDistal'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
@@ -284,15 +284,15 @@ class RokokoListener(Node):
 
         if 'RightDigit4ProximalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit4ProximalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit4ProximalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit4ProximalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit4Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit4Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightRingMedial'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
         if 'RightDigit4DistalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit4DistalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit4DistalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit4DistalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit4Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit4Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightRingDistal'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
@@ -306,15 +306,15 @@ class RokokoListener(Node):
 
         if 'RightDigit5ProximalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit5ProximalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit5ProximalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit5ProximalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit5Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit5Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightLittleMedial'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
         if 'RightDigit5DistalInterphalangeal_flexion' in row:
             roll = -row.get('RightDigit5DistalInterphalangeal_flexion', 0)
-            pitch = -row.get('RightDigit5DistalInterphalangeal_ulnarDeviation', 0)
-            yaw = row.get('RightDigit5DistalInterphalangeal_pronation', 0)
+            pitch = -row.get('RightDigit5Metacarpophalangeal_ulnarDeviation', 0)
+            yaw = row.get('RightDigit5Metacarpophalangeal_pronation', 0)
             x, y, z, w = self.euler_to_quaternion(roll, pitch, yaw)
             body['rightLittleDistal'] = {'rotation': {'x': x, 'y': y, 'z': z, 'w': w}}
 
@@ -329,6 +329,49 @@ class RokokoListener(Node):
             }
 
         return json_data
+
+    # ── Quaternion helpers ────────────────────────────────────────────────────
+
+    def _quat_inv(self, q):
+        """Inverse of a unit quaternion (w, x, y, z)"""
+        w, x, y, z = q
+        return (w, -x, -y, -z)
+
+    def _quat_mul(self, q1, q2):
+        """Hamilton product of two quaternions (w, x, y, z)"""
+        w1, x1, y1, z1 = q1
+        w2, x2, y2, z2 = q2
+        return (
+            w1*w2 - x1*x2 - y1*y2 - z1*z2,
+            w1*x2 + x1*w2 + y1*z2 - z1*y2,
+            w1*y2 - x1*z2 + y1*w2 + z1*x2,
+            w1*z2 + x1*y2 - y1*x2 + z1*w2,
+        )
+
+    def _rotate_vec_by_quat(self, q, v):
+        """Rotate vector v=(vx,vy,vz) by unit quaternion q=(w,x,y,z).
+        Uses sandwich product: q * [0,v] * q^-1, returns the vector part.
+        To rotate world→local use q = palm_q_inv.
+        """
+        qv = (0.0, v[0], v[1], v[2])
+        q_conj = (q[0], -q[1], -q[2], -q[3])
+        result = self._quat_mul(self._quat_mul(q, qv), q_conj)
+        return (result[1], result[2], result[3])
+
+    def _relative_euler(self, body, parent_key, child_key):
+        """
+        Compute Euler angles of child relative to parent.
+        Returns (roll, pitch, yaw) in radians, or None if keys missing.
+        This gives the actual joint angle rather than the global bone orientation.
+        """
+        if parent_key not in body or child_key not in body:
+            return None
+        rp = body[parent_key]['rotation']
+        rc = body[child_key]['rotation']
+        qp = (rp['w'], rp['x'], rp['y'], rp['z'])
+        qc = (rc['w'], rc['x'], rc['y'], rc['z'])
+        q_rel = self._quat_mul(self._quat_inv(qp), qc)
+        return self.quaternion_to_euler(q_rel[1], q_rel[2], q_rel[3], q_rel[0])
 
     def quaternion_to_euler(self, x, y, z, w):
         """Convert quaternion to Euler angles (roll, pitch, yaw) in radians"""
@@ -355,8 +398,16 @@ class RokokoListener(Node):
 
     def parse_rokoko_to_csv(self, json_data):
         """
-        Parse Rokoko JSON v3 data and convert to structured joint format
-        Returns CSV-style string with anatomical joint names
+        Parse Rokoko JSON v3 data and convert to structured joint format.
+        Returns CSV-style string with anatomical joint names.
+
+        Joint angles: computed as relative rotations (parent^-1 * child) so they
+        are independent of the global arm/hand orientation in world space.
+
+        Fingertip positions: published as both world-space (_pos_) and palm-local
+        (_local_).  The palm-local columns rotate each tip vector by the inverse of
+        the palm quaternion, making them independent of where the hand is pointing.
+        nano_retargeting uses _local_ columns for orientation-independent IK.
         """
 
         try:
@@ -374,102 +425,137 @@ class RokokoListener(Node):
                     actor = actors[0]  # Use first actor
                     body = actor.get('body', {})
 
-                    # Parse right hand fingers
+                    # Parse right hand fingers using RELATIVE quaternions (parent^-1 * child).
+                    # Global bone orientations include arm/wrist pose (~120-165 deg) and immediately
+                    # clamp to joint limits. Relative rotations give the actual joint angle (~15-30 deg).
+
                     # Thumb (Digit 1)
-                    if 'rightThumbProximal' in body:
-                        rot = body['rightThumbProximal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit1Carpometacarpal_flexion'] = -roll  # Negated to match other fingers
-                        joints['RightDigit1Carpometacarpal_ulnarDeviation'] = pitch
+                    # we only care for roll and yaw
+                    # roll is rotation about x(flex, ext), yaw rotation about z (add,abd)
+                    rel = self._relative_euler(body, 'rightHand', 'rightThumbProximal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit1Carpometacarpal_flexion'] = -roll
+                        joints['RightDigit1Carpometacarpal_ulnarDeviation'] = -yaw
 
-                    if 'rightThumbMedial' in body:
-                        rot = body['rightThumbMedial']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit1Metacarpophalangeal_flexion'] = -roll  # Negated to match other fingers
-                        joints['RightDigit1Metacarpophalangeal_ulnarDeviation'] = pitch
+                    rel = self._relative_euler(body, 'rightThumbProximal', 'rightThumbMedial')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit1Metacarpophalangeal_flexion'] = -roll
+                        joints['RightDigit1Metacarpophalangeal_ulnarDeviation'] = -yaw
 
-                    if 'rightThumbDistal' in body:
-                        rot = body['rightThumbDistal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit1Interphalangeal_flexion'] = -roll  # Negated to match other fingers
+                    rel = self._relative_euler(body, 'rightThumbMedial', 'rightThumbDistal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit1Interphalangeal_flexion'] = -roll
 
                     # Index (Digit 2)
-                    if 'rightIndexProximal' in body:
-                        rot = body['rightIndexProximal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit2Metacarpophalangeal_flexion'] = -roll  # Negated and swapped
-                        joints['RightDigit2Metacarpophalangeal_ulnarDeviation'] = pitch  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightHand', 'rightIndexProximal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit2Metacarpophalangeal_flexion'] = -roll
+                        joints['RightDigit2Metacarpophalangeal_ulnarDeviation'] = -yaw
 
-                    if 'rightIndexMedial' in body:
-                        rot = body['rightIndexMedial']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit2ProximalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightIndexProximal', 'rightIndexMedial')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit2ProximalInterphalangeal_flexion'] = -roll
 
-                    if 'rightIndexDistal' in body:
-                        rot = body['rightIndexDistal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit2DistalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightIndexMedial', 'rightIndexDistal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit2DistalInterphalangeal_flexion'] = -roll
 
                     # Middle (Digit 3)
-                    if 'rightMiddleProximal' in body:
-                        rot = body['rightMiddleProximal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit3Metacarpophalangeal_flexion'] = -roll  # Negated and swapped
-                        joints['RightDigit3Metacarpophalangeal_ulnarDeviation'] = -pitch  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightHand', 'rightMiddleProximal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit3Metacarpophalangeal_flexion'] = -roll
+                        joints['RightDigit3Metacarpophalangeal_ulnarDeviation'] = -yaw
 
-                    if 'rightMiddleMedial' in body:
-                        rot = body['rightMiddleMedial']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit3ProximalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightMiddleProximal', 'rightMiddleMedial')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit3ProximalInterphalangeal_flexion'] = -roll
 
-                    if 'rightMiddleDistal' in body:
-                        rot = body['rightMiddleDistal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit3DistalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightMiddleMedial', 'rightMiddleDistal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit3DistalInterphalangeal_flexion'] = -roll
 
                     # Ring (Digit 4)
-                    if 'rightRingProximal' in body:
-                        rot = body['rightRingProximal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit4Metacarpophalangeal_flexion'] = -roll  # Negated and swapped
-                        joints['RightDigit4Metacarpophalangeal_ulnarDeviation'] = -pitch  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightHand', 'rightRingProximal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit4Metacarpophalangeal_flexion'] = -roll
+                        joints['RightDigit4Metacarpophalangeal_ulnarDeviation'] = -yaw
 
-                    if 'rightRingMedial' in body:
-                        rot = body['rightRingMedial']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit4ProximalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightRingProximal', 'rightRingMedial')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit4ProximalInterphalangeal_flexion'] = -roll
 
-                    if 'rightRingDistal' in body:
-                        rot = body['rightRingDistal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit4DistalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightRingMedial', 'rightRingDistal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit4DistalInterphalangeal_flexion'] = -roll
 
                     # Little/Pinky (Digit 5)
-                    if 'rightLittleProximal' in body:
-                        rot = body['rightLittleProximal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit5Metacarpophalangeal_flexion'] = -roll  # Negated and swapped
-                        joints['RightDigit5Metacarpophalangeal_ulnarDeviation'] = -pitch  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightHand', 'rightLittleProximal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit5Metacarpophalangeal_flexion'] = -roll
+                        joints['RightDigit5Metacarpophalangeal_ulnarDeviation'] = -yaw
 
-                    if 'rightLittleMedial' in body:
-                        rot = body['rightLittleMedial']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit5ProximalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightLittleProximal', 'rightLittleMedial')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit5ProximalInterphalangeal_flexion'] = -roll
 
-                    if 'rightLittleDistal' in body:
-                        rot = body['rightLittleDistal']['rotation']
-                        roll, pitch, yaw = self.quaternion_to_euler(rot['x'], rot['y'], rot['z'], rot['w'])
-                        joints['RightDigit5DistalInterphalangeal_flexion'] = -roll  # Negated and swapped
+                    rel = self._relative_euler(body, 'rightLittleMedial', 'rightLittleDistal')
+                    if rel:
+                        roll, pitch, yaw = rel
+                        joints['RightDigit5DistalInterphalangeal_flexion'] = -roll
 
-                    # Also include fingertip positions for IK control
+                    # Fingertip positions — published in two forms:
+                    #   _pos_   : world-space (kept for backward compat / CSV fallback)
+                    #   _local_ : palm-local frame (palm_rot^-1 * (tip - palm_pos))
+                    #             orientation-independent → used by fingertip_ik_control
+                    digit_map = {'Thumb': 1, 'Index': 2, 'Middle': 3, 'Ring': 4, 'Little': 5}
+
+                    palm_local_available = (
+                        'rightHand' in body
+                        and 'position' in body['rightHand']
+                        and 'rotation' in body['rightHand']
+                    )
+
+                    if palm_local_available:
+                        palm_p = body['rightHand']['position']
+                        palm_r = body['rightHand']['rotation']
+                        palm_q = (palm_r['w'], palm_r['x'], palm_r['y'], palm_r['z'])
+                        palm_q_inv = self._quat_inv(palm_q)
+
                     for finger in ['Thumb', 'Index', 'Middle', 'Ring', 'Little']:
                         tip_key = f'right{finger}Tip'
-                        if tip_key in body:
-                            pos = body[tip_key]['position']
-                            digit_num = {'Thumb': 1, 'Index': 2, 'Middle': 3, 'Ring': 4, 'Little': 5}[finger]
-                            joints[f'RightDigit{digit_num}Tip_pos_x'] = pos['x']
-                            joints[f'RightDigit{digit_num}Tip_pos_y'] = pos['y']
-                            joints[f'RightDigit{digit_num}Tip_pos_z'] = pos['z']
+                        if tip_key not in body:
+                            continue
+                        pos = body[tip_key]['position']
+                        d = digit_map[finger]
+                        # World-space positions (orientation-dependent)
+                        joints[f'RightDigit{d}Tip_pos_x'] = pos['x']
+                        joints[f'RightDigit{d}Tip_pos_y'] = pos['y']
+                        joints[f'RightDigit{d}Tip_pos_z'] = pos['z']
+                        # Palm-local positions (orientation-independent)
+                        if palm_local_available:
+                            rel_vec = (
+                                pos['x'] - palm_p['x'],
+                                pos['y'] - palm_p['y'],
+                                pos['z'] - palm_p['z'],
+                            )
+                            local = self._rotate_vec_by_quat(palm_q_inv, rel_vec)
+                            joints[f'RightDigit{d}DistalPhalanx_local_x'] = local[0]
+                            joints[f'RightDigit{d}DistalPhalanx_local_y'] = local[1]
+                            joints[f'RightDigit{d}DistalPhalanx_local_z'] = local[2]
 
                     # Include hand/palm position for IK calculations
                     if 'rightHand' in body and 'position' in body['rightHand']:
@@ -604,7 +690,15 @@ class RokokoListener(Node):
             self.receive_udp_data()
 
     def playback_csv_data(self):
-        """Playback one frame from CSV data"""
+        """Playback one frame from CSV data.
+
+        CSV files store world-space positions and do not include the palm rotation
+        quaternion, so true palm-local positions cannot be computed here.  Instead
+        we publish palm-relative world-space offsets under the _local_ column names
+        so that nano_retargeting can still use them (orientation-dependent, but at
+        least position-independent).  For fully orientation-independent IK use live
+        Rokoko data, which supplies the palm rotation quaternion.
+        """
         if not self.csv_data or len(self.csv_data) == 0:
             return
 
@@ -620,24 +714,32 @@ class RokokoListener(Node):
         row = self.csv_data[self.csv_index]
         self.csv_index += 1
 
-        # DIRECT CSV PLAYBACK - Skip unnecessary JSON conversion
-        # The CSV file already contains the correct angle format,
-        # so we can publish it directly without converting to/from quaternions
-
-        # Build CSV string directly from row data
         csv_lines = []
         timestamp = row.get('Timestamp', 0)
 
         # Publish all joint angles from the CSV row
         for joint_name, value in row.items():
-            if joint_name != 'Timestamp':  # Skip timestamp
+            if joint_name != 'Timestamp':
                 csv_lines.append(f'{timestamp},{joint_name},{value}')
 
-        csv_data = '\n'.join(csv_lines)
+        # Compute palm-relative (world-frame) tip offsets as _local_ columns.
+        # These are NOT rotated into palm frame (CSV lacks palm quaternion) but
+        # remove absolute-position dependence, which is a partial improvement.
+        palm_x = row.get('RightHand_position_x')
+        palm_y = row.get('RightHand_position_y')
+        palm_z = row.get('RightHand_position_z')
+        if palm_x is not None:
+            for digit in range(1, 6):
+                tx = row.get(f'RightDigit{digit}DistalPhalanx_position_x')
+                ty = row.get(f'RightDigit{digit}DistalPhalanx_position_y')
+                tz = row.get(f'RightDigit{digit}DistalPhalanx_position_z')
+                if tx is not None:
+                    csv_lines.append(f'{timestamp},RightDigit{digit}DistalPhalanx_local_x,{tx - palm_x}')
+                    csv_lines.append(f'{timestamp},RightDigit{digit}DistalPhalanx_local_y,{ty - palm_y}')
+                    csv_lines.append(f'{timestamp},RightDigit{digit}DistalPhalanx_local_z,{tz - palm_z}')
 
-        # Publish CSV-format reference data
         ref_msg = String()
-        ref_msg.data = csv_data
+        ref_msg.data = '\n'.join(csv_lines)
         self.ref_publisher_.publish(ref_msg)
 
         # Log progress every 100 frames

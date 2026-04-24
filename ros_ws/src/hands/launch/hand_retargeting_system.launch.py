@@ -17,7 +17,8 @@ def launch_setup(context, *args, **kwargs):
         'orca': 'orca_retargeting',
         'inspire': 'inspire_retargeting',
         'leap': 'leap_retargeting',
-        'nano': 'nano_retargeting'
+        'nano': 'nano_retargeting',
+        'nano_physics': 'nano_retargeting_physics',
     }
 
     executable = retargeting_map.get(hand_type)
@@ -242,6 +243,23 @@ def generate_launch_description():
         }]
     )
 
+    # Hardware control node for nano hand (optional)
+    nano_hardware_node = Node(
+        package='hands',
+        executable='nano_hardware_control',
+        name='nano_hardware_control',
+        output='screen',
+        condition=IfCondition(
+            PythonExpression([
+                "'", LaunchConfiguration('hardware_mode'), "' == 'true' and ",
+                "'", LaunchConfiguration('hand_type'), "' in ('nano', 'nano_physics')"
+            ])
+        ),
+        parameters=[{
+            'hardware_mode': LaunchConfiguration('hardware_mode'),
+        }]
+    )
+
     # Conditionally launch the appropriate retargeting node and robot_state_publisher
     dynamic_launch = OpaqueFunction(function=launch_setup)
 
@@ -264,5 +282,6 @@ def generate_launch_description():
         orca_hardware_node,
         leap_hardware_node,
         inspire_hardware_node,
+        nano_hardware_node,
         dynamic_launch
     ])

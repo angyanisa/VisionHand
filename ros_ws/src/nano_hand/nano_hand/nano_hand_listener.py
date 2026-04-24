@@ -36,16 +36,7 @@ class NanoHandDriver(Node):
         self.timer = self.create_timer(0.1, self.publish_joint_states)
 
         self.get_logger().info("Nano Hand Driver initialized")
-        # self.test_connection()
 
-    # def test_connection(self):
-    #     if not self.serial_conn:
-    #         return
-    #     try:
-    #         self.serial_conn.write(b'\x00')
-    #         self.get_logger().info("Sent basic test byte to Inspire hand.")
-    #     except Exception as e:
-    #         self.get_logger().error(f"Connection test failed: {e}")
 
     def send_joint_positions(self, positions):
         try:

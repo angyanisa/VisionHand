@@ -193,37 +193,41 @@ class NanoRetargeting(Node):
         self.joint_limits_rad = {name: data['limits'] for name, data in self.joints.items()}
         self.use_joint_limits = True
 
-        # Finger chains for IK — independent joints only (wiggle + curl, no mimics)
+        # Finger chains for IK.
+        # Each chain includes pip and dip mimic joints so IK sees 4 DOF per finger
+        # (wiggle + curl + pip + dip) → 1 null-space DOF instead of 2, making
+        # wiggle+curl solutions more stable. _apply_mimic_joints will recompute
+        # pip/dip from curl afterward for physical consistency.
         self.finger_chains = {
             'thumb': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['thumb'],
-                'joint_indices': [16, 17],
-                'joint_names':   ['thumb_wiggle', 'thumb_curl'],
+                'joint_indices': [16, 17, 18, 19],
+                'joint_names':   ['thumb_wiggle', 'thumb_curl', 'thumb_curl_pip', 'thumb_curl_dip'],
             },
             'index': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['index'],
-                'joint_indices': [12, 13],
-                'joint_names':   ['index_wiggle', 'index_curl'],
+                'joint_indices': [12, 13, 14, 15],
+                'joint_names':   ['index_wiggle', 'index_curl', 'index_curl_pip', 'index_curl_dip'],
             },
             'middle': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['middle'],
-                'joint_indices': [8, 9],
-                'joint_names':   ['middle_wiggle', 'middle_curl'],
+                'joint_indices': [8, 9, 10, 11],
+                'joint_names':   ['middle_wiggle', 'middle_curl', 'middle_curl_pip', 'middle_curl_dip'],
             },
             'ring': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['ring'],
-                'joint_indices': [4, 5],
-                'joint_names':   ['ring_wiggle', 'ring_curl'],
+                'joint_indices': [4, 5, 6, 7],
+                'joint_names':   ['ring_wiggle', 'ring_curl', 'ring_curl_pip', 'ring_curl_dip'],
             },
             'pinky': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['pinky'],
-                'joint_indices': [0, 1],
-                'joint_names':   ['pinky_wiggle', 'pinky_curl'],
+                'joint_indices': [0, 1, 2, 3],
+                'joint_names':   ['pinky_wiggle', 'pinky_curl', 'pinky_curl_pip', 'pinky_curl_dip'],
             },
         }
 
@@ -332,7 +336,12 @@ class NanoRetargeting(Node):
     def rotation_rokoko_to_nano(self, vec):
         """Remap Rokoko character-space axes to PyBullet world axes."""
         rx, ry, rz = vec
-        return [rz, -rx, ry]
+        # Old mapping (move_fingers_1.csv — fingers pointing in Rokoko +Y / arm raised):
+        # return [rz, -rx, ry]
+        # New mapping (test.csv — fingers pointing in Rokoko +Z / arm extended forward):
+        # Rokoko X = lateral (index→pinky), Y = vertical (small), Z = forward (extension)
+        # Nano URDF X = lateral (index→pinky), Y = small offsets, Z = finger extension
+        return [rx, ry, rz]
 
     def _apply_mimic_joints(self, joint_angles):
         """
@@ -498,20 +507,11 @@ class NanoRetargeting(Node):
     def fingertip_ik_control(self, parsed_data):
         """
         Fingertip IK using PyBullet calculateInverseKinematics.
-        Thumb uses direct joint mapping (stable — IK is underdetermined for 2-DOF thumb).
-        Fingers 2-5 use IK from Rokoko distal phalanx positions.
+        All fingers including thumb are solved via IK from Rokoko distal phalanx positions.
+        Thumb chain includes pip/dip mimic joints so IK sees 4 DOF (1 null-space DOF),
+        making wiggle+curl solutions well-conditioned and stable.
         """
-        # ── Thumb wiggle: direct from Rokoko (well-constrained, no IK needed) ──
-        # ── Thumb curl: solved via IK (ensures positional accuracy for finger contact) ──
-        # Setting wiggle first constrains the IK null-space so it only adjusts curl.
         joint_angles = {}
-        wiggle_val = parsed_data.get(self.joint_mapping['thumb_wiggle'], 0.0)
-        wiggle_rad = math.radians(wiggle_val) if self.data_in_degrees else wiggle_val
-        lo, hi = self.joint_limits_rad['thumb_wiggle']
-        safe_hi = self._mcp_safe_upper.get('thumb_wiggle', hi)
-        thumb_wiggle_angle = max(lo, min(safe_hi, wiggle_rad))
-        joint_angles['thumb_wiggle'] = thumb_wiggle_angle
-        p.resetJointState(self.robot_id, self.joints['thumb_wiggle']['pb_idx'], thumb_wiggle_angle)
 
         palm_link_info = p.getLinkState(self.robot_id, self.palm_link_id, computeForwardKinematics=True)
         inspire_palm_in_world = np.array(palm_link_info[0], dtype=float)
@@ -539,17 +539,16 @@ class NanoRetargeting(Node):
         pb_to_movable_idx = {pb: i for i, pb in enumerate(self.movable_joints)}
         current_joint_angles = self._ik_prev_joint_angles.copy()
 
-        # EMA alpha per finger — thumb uses heavy smoothing to suppress branch-flip jitter.
-        # Other fingers use lighter smoothing for responsiveness.
+        # EMA alpha per finger — thumb now matches others since 4-DOF IK is well-conditioned.
         EMA_ALPHA = {
-            'thumb':  0.15,  # heavy: slow but stable
+            'thumb':  0.15,
             'index':  0.5,
             'middle': 0.5,
             'ring':   0.5,
             'pinky':  0.5,
         }
         MAX_DELTA = {
-            'thumb':  0.04,
+            'thumb':  0.05,
             'index':  0.15,
             'middle': 0.15,
             'ring':   0.15,
@@ -592,12 +591,6 @@ class NanoRetargeting(Node):
             except Exception as e:
                 self.get_logger().warn(f'IK failed for {finger_name}: {e}')
 
-        # Restore thumb_wiggle to direct Rokoko value — IK may have drifted it
-        thumb_wiggle_pb = self.joints['thumb_wiggle']['pb_idx']
-        if thumb_wiggle_pb in pb_to_movable_idx:
-            current_joint_angles[pb_to_movable_idx[thumb_wiggle_pb]] = thumb_wiggle_angle
-            p.resetJointState(self.robot_id, thumb_wiggle_pb, thumb_wiggle_angle)
-
         # Persist solution so next frame seeds IK from here (prevents inter-frame flipping)
         self._ik_prev_joint_angles = current_joint_angles.copy()
 
@@ -606,7 +599,6 @@ class NanoRetargeting(Node):
             self.pybullet_to_nano[pb]: current_joint_angles[pb_to_movable_idx[pb]]
             for pb in self.pybullet_to_nano if pb in pb_to_movable_idx
         }
-        joint_angles['thumb_wiggle'] = thumb_wiggle_angle
         self._apply_mimic_joints(joint_angles)
 
         # Visualise FK fingertip positions (same as direct mode — world frame → base frame)

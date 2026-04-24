@@ -85,7 +85,21 @@ def launch_setup(context, *args, **kwargs):
         output='screen'
     )
 
-    return [robot_state_publisher, retargeting_node, rviz_node]
+    nodes = [robot_state_publisher, retargeting_node, rviz_node]
+
+    if hand_type in ('nano', 'nano_physics'):
+        nodes.append(Node(
+            package='hands',
+            executable='nano_hardware_control',
+            name='nano_hardware_control',
+            output='screen',
+            parameters=[{
+                'hardware_mode': LaunchConfiguration('hardware_mode'),
+                'move_time': LaunchConfiguration('move_time'),
+            }]
+        ))
+
+    return nodes
 
 
 def generate_launch_description():
@@ -123,7 +137,13 @@ def generate_launch_description():
     hardware_mode_arg = DeclareLaunchArgument(
         'hardware_mode',
         default_value='false',
-        description='Enable hardware control for ORCA hand (true/false)'
+        description='Enable hardware control (true/false)'
+    )
+
+    move_time_arg = DeclareLaunchArgument(
+        'move_time',
+        default_value='50',
+        description='Servo move time in ms for nano hardware control'
     )
 
     model_path_arg = DeclareLaunchArgument(
@@ -212,6 +232,7 @@ def generate_launch_description():
         loop_arg,
         control_method_arg,
         hardware_mode_arg,
+        move_time_arg,
         model_path_arg,
         calibrate_arg,
         dynamic_launch,

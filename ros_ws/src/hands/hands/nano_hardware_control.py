@@ -12,11 +12,11 @@ Joint names from nano_retargeting (10 independent joints):
   index_wiggle, index_curl
   thumb_wiggle, thumb_curl
 
-Hamsa API: hand.wiggle_X(position, time) / hand.curl_X(position, time)
-  position is in raw servo units — taken from hamsa.config:
-    curl:   out=open position, in=closed position
-    wiggle: left / right positions
-  We interpolate linearly from URDF joint angle range → servo unit range.
+Hamsa API: hand.wiggle_X(proportion, time) / hand.curl_X(proportion, time)
+  proportion is 0.0–1.0:
+    curl:   0.0 = open (out position), 1.0 = closed (in position)
+    wiggle: 0.0 = left,               1.0 = right
+  The firmware maps proportion → raw servo units using hamsa.config internally.
 """
 
 import rclpy
@@ -27,6 +27,8 @@ from hamsa import hand
 
 
 # URDF joint limits (radians) — must match nano_retargeting.py
+# curl:   lower = open, upper = closed
+# wiggle: lower = left, upper = right
 JOINT_LIMITS = {
     'pinky_wiggle':  (-0.17,  0.26 ),
     'pinky_curl':    ( 0.0,   0.97 ),
@@ -38,22 +40,6 @@ JOINT_LIMITS = {
     'index_curl':    ( 0.0,   1.06 ),
     'thumb_wiggle':  (-0.78,  1.48 ),
     'thumb_curl':    ( 0.0,   0.68 ),
-}
-
-# Servo unit ranges from hamsa.config.
-# curl:   (out, in)   → angle lower maps to out (open), upper maps to in (closed)
-# wiggle: (left, right) → angle lower maps to left, upper maps to right
-SERVO_RANGES = {
-    'pinky_curl':    (0,    800 ),
-    'ring_curl':     (0,    1023),
-    'middle_curl':   (1023, 200 ),
-    'index_curl':    (1023, 0   ),
-    'thumb_curl':    (0,    800 ),
-    'pinky_wiggle':  (550,  450 ),
-    'ring_wiggle':   (575,  475 ),
-    'middle_wiggle': (550,  450 ),
-    'index_wiggle':  (550,  450 ),
-    'thumb_wiggle':  (800,  435 ),
 }
 
 # Maps joint name → hamsa send function
@@ -71,21 +57,22 @@ SEND_FUNCTIONS = {
 }
 
 
-def angle_to_servo(joint_name, angle_rad):
-    """Convert URDF joint angle (radians) to servo position units."""
+def angle_to_proportion(joint_name, angle_rad):
+    """Convert URDF joint angle (radians) to hamsa proportion (0.0–1.0).
+
+    Hamsa convention (confirmed from EMG_to_nano.py open_hand sending curl=1.0):
+      curl:   0.0 = closed (in position),  1.0 = open (out position)
+      wiggle: 0.0 = left,                  1.0 = right
+
+    URDF curl angles go 0.0 (open) → hi (closed), so curl proportions are inverted.
+    URDF wiggle angles go lo (left) → hi (right), so wiggle proportions are direct.
+    """
     lo, hi = JOINT_LIMITS[joint_name]
-    servo_lo, servo_hi = SERVO_RANGES[joint_name]
-
-    # Clamp to joint limits
     angle_rad = max(lo, min(hi, angle_rad))
-
-    # Linear interpolation: angle [lo, hi] → servo [servo_lo, servo_hi]
-    if hi - lo == 0:
-        t = 0.0
-    else:
-        t = (angle_rad - lo) / (hi - lo)
-
-    return int(round(servo_lo + t * (servo_hi - servo_lo)))
+    if hi == lo:
+        return 0.0
+    t = (angle_rad - lo) / (hi - lo)
+    return (1.0 - t) if 'curl' in joint_name else t
 
 
 class NanoHardwareControl(Node):
@@ -98,23 +85,35 @@ class NanoHardwareControl(Node):
         self.hardware_mode = self.get_parameter('hardware_mode').get_parameter_value().bool_value
         self.move_time = self.get_parameter('move_time').get_parameter_value().integer_value
 
-        if not self.hardware_mode:
-            self.get_logger().info('Hardware mode disabled — not sending commands to hand')
-            return
-
         self.create_subscription(JointState, '/joint_states', self.joint_state_callback, 10)
-        self.get_logger().info(f'Nano Hardware Control started (move_time={self.move_time}ms)')
+
+        if not self.hardware_mode:
+            self.get_logger().info('DRY-RUN mode — logging proportions without sending to hand')
+        else:
+            self.get_logger().info(f'Nano Hardware Control started (move_time={self.move_time}ms)')
 
     def joint_state_callback(self, msg):
         joint_positions = dict(zip(msg.name, msg.position))
 
+        proportions = {}
+        for joint_name in SEND_FUNCTIONS:
+            if joint_name in joint_positions:
+                proportions[joint_name] = angle_to_proportion(joint_name, joint_positions[joint_name])
+
+        self.get_logger().info(
+            ('SEND' if self.hardware_mode else 'DRY-RUN') + ' proportions: ' +
+            ', '.join(f'{k}={v:.2f}' for k, v in proportions.items()),
+            throttle_duration_sec=0.5
+        )
+
+        if not self.hardware_mode:
+            return
+
         for joint_name, send_fn in SEND_FUNCTIONS.items():
-            if joint_name not in joint_positions:
+            if joint_name not in proportions:
                 continue
-            angle = joint_positions[joint_name]
-            servo_pos = angle_to_servo(joint_name, angle)
             try:
-                send_fn(servo_pos, self.move_time)
+                send_fn(proportions[joint_name], self.move_time)
             except Exception as e:
                 self.get_logger().error(f'Failed to send {joint_name}: {e}', throttle_duration_sec=5.0)
 
