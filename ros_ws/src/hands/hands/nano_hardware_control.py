@@ -1,24 +1,4 @@
 #!/usr/bin/env python3
-"""
-Nano Hand Hardware Controller
-
-Subscribes to /joint_states from nano_retargeting and sends commands
-to the real Nano hand via the hamsa library.
-
-Joint names from nano_retargeting (10 independent joints):
-  pinky_wiggle, pinky_curl
-  ring_wiggle,  ring_curl
-  middle_wiggle, middle_curl
-  index_wiggle, index_curl
-  thumb_wiggle, thumb_curl
-
-Hamsa API: hand.wiggle_X(proportion, time) / hand.curl_X(proportion, time)
-  proportion is 0.0–1.0:
-    curl:   0.0 = open (out position), 1.0 = closed (in position)
-    wiggle: 0.0 = left,               1.0 = right
-  The firmware maps proportion → raw servo units using hamsa.config internally.
-"""
-
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
