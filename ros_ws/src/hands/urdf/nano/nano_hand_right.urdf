@@ -515,7 +515,7 @@
     <origin xyz="-0.001268 -0.024596 -0.029024" rpy="0 0 0"/>
     <axis xyz="0.9943 0.0000 -0.1066"/>
     <limit lower="0.0" upper="1.65" effort="1.0" velocity="3.0"/>
-    <mimic joint="thumb_curl" multiplier="2" offset="0.0"/>
+    <mimic joint="thumb_curl" multiplier="1" offset="0.0"/>
   </joint>
 
   <link name="thumb_tip">

@@ -123,7 +123,7 @@ class NanoRetargeting(Node):
             16: ('index_curl',  14, 2.23, 0.0),  # index_curl_dip
             # Thumb
             19: ('thumb_curl',  18, 0.83, 0.0),  # thumb_curl_pip
-            20: ('thumb_curl',  18, 2.0,  0.0),  # thumb_curl_dip
+            20: ('thumb_curl',  18, 1.0,  0.0),  # thumb_curl_dip
         }
 
         # ── Joint mapping: nano joint name → Rokoko CSV column ────────────────
@@ -186,6 +186,13 @@ class NanoRetargeting(Node):
                 self.movable_joints.append(i)
 
         self.find_link_indices()
+
+        # Pre-compute each fingertip's rest distance from the palm origin in PyBullet.
+        # Used to scale IK targets so they stay within the nano hand's reachable workspace.
+        self._ik_tip_distances = {}
+        for fname, link_idx in self.fingertip_link_indices.items():
+            ls = p.getLinkState(self.robot_id, link_idx, computeForwardKinematics=True)
+            self._ik_tip_distances[fname] = float(np.linalg.norm(ls[0]))
 
         # Joint limit arrays — must cover ALL movable joints in pb_idx order
         # (PyBullet IK requires limit arrays of length == number of movable joints)
@@ -590,8 +597,6 @@ class NanoRetargeting(Node):
 
         inspire_tips_in_world = {}
         for finger_name in self.tip_position_mapping:
-            if finger_name == 'thumb':
-                continue  # thumb handled via direct CMC mapping below
             if palm_R is not None:
                 # CSV path: reconstruct palm-local vector from metacarpal frame.
                 # palm_R columns: [lat(+X), nrm(+Y), fwd(+Z toward fingertips)]
@@ -601,7 +606,22 @@ class NanoRetargeting(Node):
                 if rokoko_tip is None:
                     continue
                 tip_local = palm_R.T @ (rokoko_tip - palm_world)
-                inspire_tips_in_world[finger_name] = np.array([tip_local[0], tip_local[1], -tip_local[2]])
+                # Nano URDF coordinate mapping from palm frame:
+                #   4 fingers extend in -Z  → Rokoko fwd (tip_local[2]) maps to nano -Z
+                #   thumb extends in  -Y  → Rokoko fwd (tip_local[2]) maps to nano -Y
+                # Scale targets to nano's reachable workspace (human DIP ≈ 0.145 m).
+                # Human DIP reference distances (palm-local magnitude at rest).
+                # Thumb is shorter because it extends more sideways than forward.
+                HUMAN_FINGER_DIP_REF = 0.145
+                HUMAN_THUMB_DIP_REF  = 0.09
+                if finger_name == 'thumb':
+                    # Thumb extends in nano -Y; Rokoko fwd (tip_local[2]) maps there.
+                    tip_nano = np.array([tip_local[0], -tip_local[2], tip_local[1]])
+                    scale = self._ik_tip_distances.get('thumb', 0.1) / HUMAN_THUMB_DIP_REF
+                else:
+                    tip_nano = np.array([tip_local[0], tip_local[1], -tip_local[2]])
+                    scale = self._ik_tip_distances.get(finger_name, 0.08) / HUMAN_FINGER_DIP_REF
+                inspire_tips_in_world[finger_name] = tip_nano * scale
             else:
                 # Live path: use _local_ columns (palm_q_inv already applied by rokoko_listener)
                 local_cols = self.tip_local_mapping[finger_name]
@@ -641,28 +661,7 @@ class NanoRetargeting(Node):
         if not hasattr(self, '_ik_ema'):
             self._ik_ema = current_joint_angles.copy()
 
-        # Thumb: direct anatomical mapping — IK cannot work here because the Nano
-        # has no CMC joint.  CMC flex is 42-60° in every frame of this recording,
-        # making any tip-based IK target point ~50° toward the finger direction.
-        # That saturates thumb_curl at its limit and adducts the thumb alongside
-        # the other fingers.  CMC_ulnar_deviation maps 1:1 to thumb_wiggle (both
-        # are Y-axis abduction), and MCP_flex maps to thumb_curl (proximal curl).
-        _CMC_ULNAR_COL = 'RightDigit1Carpometacarpal_ulnarDeviation'
-        _MCP_FLEX_COL  = 'RightDigit1Metacarpophalangeal_flexion'
-        if _CMC_ULNAR_COL in parsed_data and _MCP_FLEX_COL in parsed_data:
-            wiggle_raw = max(-0.78, min(1.48, np.radians(float(parsed_data[_CMC_ULNAR_COL]))))
-            curl_raw   = max(0.0,   min(0.68, np.radians(float(parsed_data[_MCP_FLEX_COL]))))
-            for pb_idx, raw in [(17, wiggle_raw), (18, curl_raw)]:
-                if pb_idx in pb_to_movable_idx:
-                    midx = pb_to_movable_idx[pb_idx]
-                    smoothed = EMA_ALPHA['thumb'] * raw + (1.0 - EMA_ALPHA['thumb']) * self._ik_ema[midx]
-                    self._ik_ema[midx] = smoothed
-                    prev = current_joint_angles[midx]
-                    delta = max(min(smoothed - prev, MAX_DELTA['thumb']), -MAX_DELTA['thumb'])
-                    current_joint_angles[midx] = prev + delta
-                    p.resetJointState(self.robot_id, pb_idx, prev + delta)
-
-        for finger_name in ['index', 'middle', 'ring', 'pinky']:
+        for finger_name in ['thumb', 'index', 'middle', 'ring', 'pinky']:
             if finger_name not in inspire_tips_in_world:
                 continue
             link_index = self.fingertip_link_indices.get(finger_name)
