@@ -745,30 +745,58 @@ class NanoRetargeting(Node):
         palm_link_info = p.getLinkState(self.robot_id, self.palm_link_id, computeForwardKinematics=True)
         inspire_palm_in_world = np.array(palm_link_info[0], dtype=float)
 
-        palm_cols = ['RightHand_position_x', 'RightHand_position_y', 'RightHand_position_z']
-        rokoko_palm_available = all(col in parsed_data for col in palm_cols)
+        # Compute IK targets with the same orientation-independent transform as fingertip_ik_control.
+        palm_R, palm_world = self._compute_palm_frame(parsed_data)
+        HUMAN_FINGER_DIP_REF = 0.145
+        HUMAN_THUMB_DIP_REF  = 0.09
+
         inspire_palm_from_rokoko = None
-        rokoko_palm = None
-        if rokoko_palm_available:
-            rokoko_palm = np.array([parsed_data[col] for col in palm_cols], dtype=float)
-            inspire_palm_from_rokoko = np.array(self.rotation_rokoko_to_nano(rokoko_palm), dtype=float)
+        if palm_R is None:
+            palm_cols = ['RightHand_position_x', 'RightHand_position_y', 'RightHand_position_z']
+            if all(col in parsed_data for col in palm_cols):
+                rokoko_palm = np.array([parsed_data[col] for col in palm_cols], dtype=float)
+                inspire_palm_from_rokoko = np.array(self.rotation_rokoko_to_nano(rokoko_palm), dtype=float)
+
+        inspire_tips_in_world = {}
+        for finger_name in self.tip_position_mapping:
+            if palm_R is not None:
+                rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
+                if rokoko_tip is None:
+                    continue
+                tip_local = palm_R.T @ (rokoko_tip - palm_world)
+                if finger_name == 'thumb':
+                    tip_nano = np.array([tip_local[0], -tip_local[2], tip_local[1]])
+                    scale = self._ik_tip_distances.get('thumb', 0.1) / HUMAN_THUMB_DIP_REF
+                else:
+                    tip_nano = np.array([tip_local[0], tip_local[1], -tip_local[2]])
+                    scale = self._ik_tip_distances.get(finger_name, 0.08) / HUMAN_FINGER_DIP_REF
+                inspire_tips_in_world[finger_name] = tip_nano * scale
+            else:
+                local_cols = self.tip_local_mapping[finger_name]
+                if all(col in parsed_data for col in local_cols):
+                    tip_local = np.array([parsed_data[col] for col in local_cols], dtype=float)
+                    inspire_tips_in_world[finger_name] = tip_local + inspire_palm_in_world
+                else:
+                    rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
+                    if rokoko_tip is None:
+                        continue
+                    inspire_tip = np.array(self.rotation_rokoko_to_nano(rokoko_tip), dtype=float)
+                    if inspire_palm_from_rokoko is not None:
+                        inspire_tips_in_world[finger_name] = (inspire_tip - inspire_palm_from_rokoko) + inspire_palm_in_world
+                    else:
+                        inspire_tips_in_world[finger_name] = inspire_tip
 
         fingers_processed = 0
         targets_for_viz = {}
 
         for finger_name, chain_info in self.finger_chains.items():
-            rokoko_tip = self.get_rokoko_tip(parsed_data, finger_name)
-            if rokoko_tip is None:
+            if finger_name not in inspire_tips_in_world:
                 if self._jparse_log_count < 3:
                     self.get_logger().warn(f'No position data for {finger_name}, skipping')
                 continue
 
             fingers_processed += 1
-            inspire_tip = np.array(self.rotation_rokoko_to_nano(rokoko_tip), dtype=float)
-            if rokoko_palm_available:
-                target_pos_world = (inspire_tip - inspire_palm_from_rokoko) + inspire_palm_in_world
-            else:
-                target_pos_world = inspire_tip
+            target_pos_world = inspire_tips_in_world[finger_name]
             targets_for_viz[finger_name] = target_pos_world.tolist()
 
             current_joint_positions = [
@@ -819,7 +847,7 @@ class NanoRetargeting(Node):
                     position_dimensions=3,
                     return_nullspace=False,
                 )
-                max_step = 0.005
+                max_step = 0.05
                 error_norm = np.linalg.norm(pos_error)
                 clamped = pos_error * (max_step / error_norm) if error_norm > max_step else pos_error
                 delta_q = J_pinv @ clamped
