@@ -10,9 +10,9 @@ from hamsa import hand
 # curl:   lower = open, upper = closed
 # wiggle: lower = left, upper = right
 JOINT_LIMITS = {
-    'pinky_wiggle':  (-0.17,  0.26 ),
+    'pinky_wiggle':  (-0.17,  0.17 ),
     'pinky_curl':    ( 0.0,   0.97 ),
-    'ring_wiggle':   (-0.2,   0.07 ),
+    'ring_wiggle':   (-0.2,   0.13 ),
     'ring_curl':     ( 0.0,   0.83 ),
     'middle_wiggle': (-0.13,  0.24 ),
     'middle_curl':   ( 0.0,   1.09 ),
@@ -37,22 +37,26 @@ SEND_FUNCTIONS = {
 }
 
 
+CURL_GAIN = 2.0  # amplifies curl: >1.0 pushes proportion further toward 0 (closed)
+
 def angle_to_proportion(joint_name, angle_rad):
     """Convert URDF joint angle (radians) to hamsa proportion (0.0–1.0).
 
     Hamsa convention (confirmed from EMG_to_nano.py open_hand sending curl=1.0):
       curl:   0.0 = closed (in position),  1.0 = open (out position)
-      wiggle: 0.0 = left,                  1.0 = right
+      wiggle: 0.0 = right,                 1.0 = left
 
     URDF curl angles go 0.0 (open) → hi (closed), so curl proportions are inverted.
-    URDF wiggle angles go lo (left) → hi (right), so wiggle proportions are direct.
+    URDF wiggle angles go lo → hi, so wiggle proportions are also inverted.
     """
     lo, hi = JOINT_LIMITS[joint_name]
     angle_rad = max(lo, min(hi, angle_rad))
     if hi == lo:
         return 0.0
     t = (angle_rad - lo) / (hi - lo)
-    return (1.0 - t) if 'curl' in joint_name else t
+    if 'curl' in joint_name:
+        return max(0.0, 1.0 - t * CURL_GAIN)
+    return 1.0 - t
 
 
 class NanoHardwareControl(Node):

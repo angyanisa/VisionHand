@@ -811,7 +811,7 @@ class NanoRetargeting(Node):
                 self.get_logger().info(f'Error magnitude: {np.linalg.norm(pos_error)*1000:.1f}mm')
                 self._pos_debug_count += 1
 
-            # Build full Jacobian then extract finger columns
+            # Build full Jacobian over all movable joints
             joint_positions, joint_velocities, joint_accelerations = [], [], []
             joint_index_to_col = {}
             col_idx = 0
@@ -833,31 +833,45 @@ class NanoRetargeting(Node):
                 objAccelerations=joint_accelerations,
             )
             J_linear = np.array(jacobian_linear)
-            finger_col_indices = [
-                joint_index_to_col[idx] for idx in chain_info['joint_indices']
-                if idx in joint_index_to_col
-            ]
-            J_finger = J_linear[:, finger_col_indices]
+
+            # 2-DOF effective Jacobian: [wiggle, curl_effective].
+            # Folding pip/dip mimic coupling into the curl column:
+            # when curl moves by Δθ, pip moves by pip_mult×Δθ and dip by dip_mult×Δθ,
+            # so their end-effector contributions must be summed into a single curl column.
+            pb_wiggle, pb_curl, pb_pip, pb_dip = chain_info['joint_indices']
+            pip_mult = self.mimic_joints[pb_pip][2]
+            dip_mult = self.mimic_joints[pb_dip][2]
+            J_eff = np.column_stack([
+                J_linear[:, joint_index_to_col[pb_wiggle]],
+                J_linear[:, joint_index_to_col[pb_curl]]
+                    + pip_mult * J_linear[:, joint_index_to_col[pb_pip]]
+                    + dip_mult * J_linear[:, joint_index_to_col[pb_dip]],
+            ])
 
             try:
                 jp_solver = jparse.JParseCore(gamma=0.1)
                 J_pinv = jp_solver.compute(
-                    jacobian=J_finger,
+                    jacobian=J_eff,
                     singular_direction_gain_position=1.0,
                     position_dimensions=3,
                     return_nullspace=False,
                 )
-                max_step = 0.05
+                max_step = 0.03
                 error_norm = np.linalg.norm(pos_error)
                 clamped = pos_error * (max_step / error_norm) if error_norm > max_step else pos_error
-                delta_q = J_pinv @ clamped
+                delta_q = J_pinv @ clamped  # shape (2,): [delta_wiggle, delta_curl]
 
-                for i, jname in enumerate(chain_info['joint_names']):
-                    new_angle = current_joint_positions[i] + delta_q[i]
-                    if jname in self.joint_limits_rad:
-                        lo, hi = self.joint_limits_rad[jname]
-                        new_angle = max(lo, min(hi, new_angle))
-                    joint_angles[jname] = new_angle
+                wiggle_name = chain_info['joint_names'][0]
+                curl_name   = chain_info['joint_names'][1]
+                new_wiggle = p.getJointState(self.robot_id, pb_wiggle)[0] + delta_q[0]
+                new_curl   = p.getJointState(self.robot_id, pb_curl)[0]   + delta_q[1]
+                lo, hi = self.joint_limits_rad[wiggle_name]
+                new_wiggle = max(lo, min(hi, new_wiggle))
+                lo, hi = self.joint_limits_rad[curl_name]
+                safe_hi = self._mcp_safe_upper.get(curl_name, hi)
+                new_curl = max(lo, min(safe_hi, new_curl))
+                joint_angles[wiggle_name] = new_wiggle
+                joint_angles[curl_name]   = new_curl
 
                 self._jparse_log_count += 1
                 if self._jparse_log_count < 20 or self._jparse_log_count % 60 == 0:
