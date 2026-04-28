@@ -42,7 +42,7 @@
     <child link="pinky_base"/>
     <origin xyz="0.057168 -0.015536 0.018012" rpy="0 0 0"/>
     <axis xyz="0.0000 1.0000 0.0000"/>
-    <limit lower="-0.17" upper="0.26" effort="1.0" velocity="3.0"/>
+    <limit lower="-0.17" upper="0.17" effort="1.0" velocity="3.0"/>
   </joint>
 
   <link name="pinky_base">
@@ -142,7 +142,7 @@
     <child link="ring_base"/>
     <origin xyz="0.041630 -0.009469 0.007289" rpy="0 0 0"/>
     <axis xyz="0.0000 1.0000 0.0000"/>
-    <limit lower="-0.2" upper="0.07" effort="1.0" velocity="3.0"/>
+    <limit lower="-0.2" upper="0.13" effort="1.0" velocity="3.0"/>
   </joint>
 
   <link name="ring_base">
@@ -535,4 +535,46 @@
     </inertial>
   </link>
 
+          <!-- ===== FIXED FINGERTIP EXTENSIONS =====
+       Added so that IK targets the physical fingertip (end of distal phalanx)
+       rather than the DIP revolute joint pivot.  Offsets derived from the
+       bounding-box extrema of each tip-section STL mesh (in palm global space)
+       minus the DIP joint world position.  Placed at the end of the URDF so
+       existing PyBullet joint indices are unchanged. -->
+
+  <link name="pinky_fingertip"/>
+  <joint name="pinky_fingertip_joint" type="fixed">
+    <parent link="pinky_tip"/>
+    <child link="pinky_fingertip"/>
+    <origin xyz="0.002 -0.003 -0.027" rpy="0 0 0"/>
+  </joint>
+
+  <link name="ring_fingertip"/>
+  <joint name="ring_fingertip_joint" type="fixed">
+    <parent link="ring_tip"/>
+    <child link="ring_fingertip"/>
+    <origin xyz="0.000 -0.007 -0.027" rpy="0 0 0"/>
+  </joint>
+
+  <link name="middle_fingertip"/>
+  <joint name="middle_fingertip_joint" type="fixed">
+    <parent link="middle_tip"/>
+    <child link="middle_fingertip"/>
+    <origin xyz="0.000 -0.001 -0.031" rpy="0 0 0"/>
+  </joint>
+
+  <link name="index_fingertip"/>
+  <joint name="index_fingertip_joint" type="fixed">
+    <parent link="index_tip"/>
+    <child link="index_fingertip"/>
+    <origin xyz="-0.001 -0.002 -0.030" rpy="0 0 0"/>
+  </joint>
+
+  <link name="thumb_fingertip"/>
+  <joint name="thumb_fingertip_joint" type="fixed">
+    <parent link="thumb_tip"/>
+    <child link="thumb_fingertip"/>
+    <origin xyz="0.000 -0.023 -0.016" rpy="0 0 0"/>
+  </joint>
+  
 </robot>

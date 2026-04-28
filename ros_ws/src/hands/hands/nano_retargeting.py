@@ -3,27 +3,32 @@
 Nano Hand Retargeting Node  (RobotNanoHand — robotnanohand.com)
 
 Joint layout from nano_hand_right.urdf (PyBullet index order):
-  0:  palm_to_base       (fixed — shifts all revolute indices by 1)
-  1:  pinky_wiggle       (independent)
-  2:  pinky_curl         (independent — MCP, servo-driven)
-  3:  pinky_curl_pip     (mimic of pinky_curl,  multiplier=2.0)
-  4:  pinky_curl_dip     (mimic of pinky_curl,  multiplier=2.23)
-  5:  ring_wiggle        (independent)
-  6:  ring_curl          (independent — MCP)
-  7:  ring_curl_pip      (mimic of ring_curl,   multiplier=1.5)
-  8:  ring_curl_dip      (mimic of ring_curl,   multiplier=1.96)
-  9:  middle_wiggle      (independent)
-  10: middle_curl        (independent — MCP)
-  11: middle_curl_pip    (mimic of middle_curl, multiplier=2.0)
-  12: middle_curl_dip    (mimic of middle_curl, multiplier=2.18)
-  13: index_wiggle       (independent)
-  14: index_curl         (independent — MCP)
-  15: index_curl_pip     (mimic of index_curl,  multiplier=2.0)
-  16: index_curl_dip     (mimic of index_curl,  multiplier=2.23)
-  17: thumb_wiggle       (independent)
-  18: thumb_curl         (independent — MCP)
-  19: thumb_curl_pip     (mimic of thumb_curl,  multiplier=0.83)
-  20: thumb_curl_dip     (mimic of thumb_curl,  multiplier=2.0)
+  0:  palm_to_base            (fixed)
+  1:  pinky_wiggle            (independent)
+  2:  pinky_curl              (independent — MCP, servo-driven)
+  3:  pinky_curl_pip          (mimic of pinky_curl,  multiplier=2.0)
+  4:  pinky_curl_dip          (mimic of pinky_curl,  multiplier=2.23)
+  5:  pinky_fingertip_joint   (fixed — IK end-effector extension)
+  6:  ring_wiggle             (independent)
+  7:  ring_curl               (independent — MCP)
+  8:  ring_curl_pip           (mimic of ring_curl,   multiplier=1.5)
+  9:  ring_curl_dip           (mimic of ring_curl,   multiplier=1.96)
+  10: ring_fingertip_joint    (fixed)
+  11: middle_wiggle           (independent)
+  12: middle_curl             (independent — MCP)
+  13: middle_curl_pip         (mimic of middle_curl, multiplier=2.0)
+  14: middle_curl_dip         (mimic of middle_curl, multiplier=2.18)
+  15: middle_fingertip_joint  (fixed)
+  16: index_wiggle            (independent)
+  17: index_curl              (independent — MCP)
+  18: index_curl_pip          (mimic of index_curl,  multiplier=2.0)
+  19: index_curl_dip          (mimic of index_curl,  multiplier=2.23)
+  20: index_fingertip_joint   (fixed)
+  21: thumb_wiggle            (independent)
+  22: thumb_curl              (independent — MCP)
+  23: thumb_curl_pip          (mimic of thumb_curl,  multiplier=0.83)
+  24: thumb_curl_dip          (mimic of thumb_curl,  multiplier=2.0)
+  25: thumb_fingertip_joint   (fixed)
 
 UPDATE mimic multipliers after physical measurement:
   PIP multiplier (0.7) and DIP multiplier (0.5) are URDF placeholders.
@@ -86,22 +91,24 @@ class NanoRetargeting(Node):
         # pb_idx: PyBullet joint index (from URDF parse order above)
         # limits: [lower_rad, upper_rad] taken directly from URDF <limit> tags
         self.joints = {
-            # palm_to_base is joint 0 (fixed) — all revolute joints start at 1
+            # palm_to_base is joint 0 (fixed). Each finger has a fixed fingertip
+            # extension joint inserted after its DIP, shifting later indices by +1
+            # per finger (see joint layout in module docstring).
             # Pinky
-            'pinky_wiggle': {'pb_idx': 1,  'limits': [-0.17,  0.26 ]},
+            'pinky_wiggle': {'pb_idx': 1,  'limits': [-0.17,  0.17 ]},
             'pinky_curl':   {'pb_idx': 2,  'limits': [0.0,    0.97 ]},
             # Ring
-            'ring_wiggle':  {'pb_idx': 5,  'limits': [-0.2,   0.07 ]},
-            'ring_curl':    {'pb_idx': 6,  'limits': [0.0,    0.83 ]},
+            'ring_wiggle':  {'pb_idx': 6,  'limits': [-0.2,   0.13 ]},
+            'ring_curl':    {'pb_idx': 7,  'limits': [0.0,    0.83 ]},
             # Middle
-            'middle_wiggle':{'pb_idx': 9,  'limits': [-0.13,  0.24 ]},
-            'middle_curl':  {'pb_idx': 10, 'limits': [0.0,    1.09 ]},
+            'middle_wiggle':{'pb_idx': 11, 'limits': [-0.13,  0.24 ]},
+            'middle_curl':  {'pb_idx': 12, 'limits': [0.0,    1.09 ]},
             # Index
-            'index_wiggle': {'pb_idx': 13, 'limits': [-0.17,  0.17 ]},
-            'index_curl':   {'pb_idx': 14, 'limits': [0.0,    1.06 ]},
+            'index_wiggle': {'pb_idx': 16, 'limits': [-0.17,  0.17 ]},
+            'index_curl':   {'pb_idx': 17, 'limits': [0.0,    1.06 ]},
             # Thumb
-            'thumb_wiggle': {'pb_idx': 17, 'limits': [-0.78,  1.48 ]},
-            'thumb_curl':   {'pb_idx': 18, 'limits': [0.0,    0.68 ]},
+            'thumb_wiggle': {'pb_idx': 21, 'limits': [-0.78,  1.48 ]},
+            'thumb_curl':   {'pb_idx': 22, 'limits': [0.0,    0.68 ]},
         }
 
         # ── Mimic joints (PIP and DIP, tendon-coupled to MCP curl) ────────────
@@ -109,21 +116,21 @@ class NanoRetargeting(Node):
         # Both PIP and DIP reference the MCP curl joint as their driver —
         # multiplier values match URDF <mimic> tags — UPDATE after measurement.
         self.mimic_joints = {
-            # Pinky
+            # Pinky (unchanged — fixed joint at 5 doesn't shift these)
             3:  ('pinky_curl',  2,  2.0,  0.0),  # pinky_curl_pip  (PIP)
             4:  ('pinky_curl',  2,  2.23, 0.0),  # pinky_curl_dip  (DIP)
-            # Ring
-            7:  ('ring_curl',   6,  1.5,  0.0),  # ring_curl_pip
-            8:  ('ring_curl',   6,  1.96, 0.0),  # ring_curl_dip
-            # Middle
-            11: ('middle_curl', 10, 2.0,  0.0),  # middle_curl_pip
-            12: ('middle_curl', 10, 2.18, 0.0),  # middle_curl_dip
-            # Index
-            15: ('index_curl',  14, 2.0,  0.0),  # index_curl_pip
-            16: ('index_curl',  14, 2.23, 0.0),  # index_curl_dip
-            # Thumb
-            19: ('thumb_curl',  18, 0.83, 0.0),  # thumb_curl_pip
-            20: ('thumb_curl',  18, 1.0,  0.0),  # thumb_curl_dip
+            # Ring (shifted +1 by pinky_fingertip_joint at 5)
+            8:  ('ring_curl',   7,  1.5,  0.0),  # ring_curl_pip
+            9:  ('ring_curl',   7,  1.96, 0.0),  # ring_curl_dip
+            # Middle (shifted +2)
+            13: ('middle_curl', 12, 2.0,  0.0),  # middle_curl_pip
+            14: ('middle_curl', 12, 2.18, 0.0),  # middle_curl_dip
+            # Index (shifted +3)
+            18: ('index_curl',  17, 2.0,  0.0),  # index_curl_pip
+            19: ('index_curl',  17, 2.23, 0.0),  # index_curl_dip
+            # Thumb (shifted +4)
+            23: ('thumb_curl',  22, 0.83, 0.0),  # thumb_curl_pip
+            24: ('thumb_curl',  22, 1.0,  0.0),  # thumb_curl_dip
         }
 
         # ── Joint mapping: nano joint name → Rokoko CSV column ────────────────
@@ -199,14 +206,14 @@ class NanoRetargeting(Node):
         mimic_limits = {
             3:  (0.0, 1.41),  # pinky_curl_pip
             4:  (0.0, 1.64),  # pinky_curl_dip
-            7:  (0.0, 1.29),  # ring_curl_pip
-            8:  (0.0, 1.55),  # ring_curl_dip
-            11: (0.0, 1.65),  # middle_curl_pip
-            12: (0.0, 1.6 ),  # middle_curl_dip
-            15: (0.0, 1.65),  # index_curl_pip
-            16: (0.0, 1.64),  # index_curl_dip
-            19: (0.0, 0.66),  # thumb_curl_pip
-            20: (0.0, 1.65),  # thumb_curl_dip
+            8:  (0.0, 1.29),  # ring_curl_pip
+            9:  (0.0, 1.55),  # ring_curl_dip
+            13: (0.0, 1.65),  # middle_curl_pip
+            14: (0.0, 1.6 ),  # middle_curl_dip
+            18: (0.0, 1.65),  # index_curl_pip
+            19: (0.0, 1.64),  # index_curl_dip
+            23: (0.0, 0.66),  # thumb_curl_pip
+            24: (0.0, 1.65),  # thumb_curl_dip
         }
         indep_limits = {v['pb_idx']: v['limits'] for v in self.joints.values()}
         self.lower_limits = []
@@ -233,25 +240,25 @@ class NanoRetargeting(Node):
             'thumb': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['thumb'],
-                'joint_indices': [17, 18, 19, 20],
+                'joint_indices': [21, 22, 23, 24],
                 'joint_names':   ['thumb_wiggle', 'thumb_curl', 'thumb_curl_pip', 'thumb_curl_dip'],
             },
             'index': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['index'],
-                'joint_indices': [13, 14, 15, 16],
+                'joint_indices': [16, 17, 18, 19],
                 'joint_names':   ['index_wiggle', 'index_curl', 'index_curl_pip', 'index_curl_dip'],
             },
             'middle': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['middle'],
-                'joint_indices': [9, 10, 11, 12],
+                'joint_indices': [11, 12, 13, 14],
                 'joint_names':   ['middle_wiggle', 'middle_curl', 'middle_curl_pip', 'middle_curl_dip'],
             },
             'ring': {
                 'base_link':     self.palm_link_id,
                 'ee_link_idx':   self.fingertip_link_indices['ring'],
-                'joint_indices': [5, 6, 7, 8],
+                'joint_indices': [6, 7, 8, 9],
                 'joint_names':   ['ring_wiggle', 'ring_curl', 'ring_curl_pip', 'ring_curl_dip'],
             },
             'pinky': {
@@ -319,11 +326,11 @@ class NanoRetargeting(Node):
 
         # Child link name → finger key (from nanohand_test.urdf)
         tip_link_names = {
-            'pinky_tip':  'pinky',
-            'ring_tip':   'ring',
-            'middle_tip': 'middle',
-            'index_tip':  'index',
-            'thumb_tip':  'thumb',
+            'pinky_fingertip':  'pinky',
+            'ring_fingertip':   'ring',
+            'middle_fingertip': 'middle',
+            'index_fingertip':  'index',
+            'thumb_fingertip':  'thumb',
         }
 
         # The palm is the URDF root link (index -1 in PyBullet).
@@ -705,13 +712,14 @@ class NanoRetargeting(Node):
         }
         self._apply_mimic_joints(joint_angles)
 
-        # Visualise FK fingertip positions (same as direct mode — world frame → base frame)
-        targets = {}
-        for finger_name, tip_idx in self.fingertip_link_indices.items():
-            link_state = p.getLinkState(self.robot_id, tip_idx, computeForwardKinematics=True)
-            pos = np.array(link_state[0])
-            targets[finger_name] = np.array([pos[0], -pos[1], -pos[2]])
-        self.publish_target_markers(targets)
+        # Visualise the IK target positions (scaled Rokoko DistalPhalanx in nano frame).
+        # inspire_tips_in_world is in PyBullet palm frame; apply 180° X flip for 'base' frame.
+        if inspire_tips_in_world:
+            targets_base = {
+                fname: np.array([pos[0], -pos[1], -pos[2]])
+                for fname, pos in inspire_tips_in_world.items()
+            }
+            self.publish_target_markers(targets_base)
         return [joint_angles.get(name, 0.0) for name in self.joint_names]
 
     def jparse_ik_control(self, parsed_data):
