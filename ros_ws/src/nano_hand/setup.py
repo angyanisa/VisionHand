@@ -12,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'rokoko_csv'), glob('rokoko_csv/*.csv')),
+        (os.path.join('share', package_name, 'fsr_csv'), glob('fsr_csv/*.json')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -23,6 +24,7 @@ setup(
         'console_scripts': [
             "nano_hand_listener = nano_hand.nano_hand_listener:main",
             "emg_to_nano = nano_hand.EMG_to_nano:main",
+            "fsr_publisher = nano_hand.fsr_publisher:main",
         ],
     },
 )

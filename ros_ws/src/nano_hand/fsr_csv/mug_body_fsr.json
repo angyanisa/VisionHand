@@ -1,0 +1,31 @@
+{
+  "recording": "mug_body",
+  "fsr_log": "fsr_mug_body.csv",
+  "sensors": {
+    "fsr0": {
+      "baseline": 0.0,
+      "contact_force": 72.0,
+      "grasp_force": 2614.8
+    },
+    "fsr1": {
+      "baseline": 0.0,
+      "contact_force": 252.0,
+      "grasp_force": 401.4
+    },
+    "fsr2": {
+      "baseline": 0.0,
+      "contact_force": 254.0,
+      "grasp_force": 1766.8
+    },
+    "fsr3": {
+      "baseline": 0.0,
+      "contact_force": 539.0,
+      "grasp_force": 2066.1
+    },
+    "fsr4": {
+      "baseline": 0.0,
+      "contact_force": 119.0,
+      "grasp_force": 1825.2
+    }
+  }
+}

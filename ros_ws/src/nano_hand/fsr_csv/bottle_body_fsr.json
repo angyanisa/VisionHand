@@ -1,0 +1,31 @@
+{
+  "recording": "bottle_body",
+  "fsr_log": "fsr_bottle_body.csv",
+  "sensors": {
+    "fsr0": {
+      "baseline": 0.0,
+      "contact_force": 795.0,
+      "grasp_force": 3001.0
+    },
+    "fsr1": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    },
+    "fsr2": {
+      "baseline": 0.0,
+      "contact_force": 704.0,
+      "grasp_force": 2199.8
+    },
+    "fsr3": {
+      "baseline": 1.6,
+      "contact_force": 796.0,
+      "grasp_force": 1912.3
+    },
+    "fsr4": {
+      "baseline": 0.4,
+      "contact_force": 507.0,
+      "grasp_force": 1335.4
+    }
+  }
+}
