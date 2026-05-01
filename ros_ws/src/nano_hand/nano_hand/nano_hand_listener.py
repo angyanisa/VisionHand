@@ -2,8 +2,6 @@
 
 import rclpy
 from rclpy.node import Node
-import serial
-import time
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory
 from std_msgs.msg import Header
@@ -12,11 +10,13 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy
 from hamsa import firmware
 from hamsa import hand
 
-DELAY = 0.1
 
 class NanoHandDriver(Node):
     def __init__(self):
         super().__init__('nano_hand_listener')
+
+        self.declare_parameter('move_time', 100)
+        self.move_time = self.get_parameter('move_time').get_parameter_value().integer_value
 
         self.joint_state_pub = self.create_publisher(JointState, '/joint_states', 10)
 
@@ -30,48 +30,36 @@ class NanoHandDriver(Node):
             qos_profile
         )
 
-        self.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5', 'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
+        self.joint_names = ['servo1', 'servo2', 'servo3', 'servo4', 'servo5',
+                            'servo6', 'servo7', 'servo8', 'servo9', 'servo10']
         self.current_positions = [0.0] * len(self.joint_names)
 
         self.timer = self.create_timer(0.1, self.publish_joint_states)
 
-        self.get_logger().info("Nano Hand Driver initialized")
-
+        self.get_logger().info(f"Nano Hand Driver initialized (move_time={self.move_time}ms)")
 
     def send_joint_positions(self, positions):
         try:
-            hand.wiggle_pinky(positions[0], 50)
-            # time.sleep(DELAY)
-            hand.curl_pinky(positions[1], 50)
-            # time.sleep(DELAY)
-            hand.wiggle_ring(positions[2], 50)
-            # time.sleep(DELAY)
-            hand.curl_ring(positions[3], 50)
-            # time.sleep(DELAY)
-            hand.wiggle_middle(positions[4], 50)
-            # time.sleep(DELAY)
-            hand.curl_middle(positions[5], 50)
-            # time.sleep(DELAY)
-            hand.wiggle_index(positions[6], 50)
-            # time.sleep(DELAY)
-            hand.curl_index(positions[7], 50)
-            # time.sleep(DELAY)
-            hand.wiggle_thumb(positions[8], 50)
-            # time.sleep(DELAY)
-            hand.curl_thumb(positions[9], 50)
-            # time.sleep(DELAY)
-
-            self.get_logger().info(f"Sent mapped joint command: {positions}")
-
+            hand.wiggle_pinky(positions[0], self.move_time)
+            hand.curl_pinky(positions[1], self.move_time)
+            hand.wiggle_ring(positions[2], self.move_time)
+            hand.curl_ring(positions[3], self.move_time)
+            hand.wiggle_middle(positions[4], self.move_time)
+            hand.curl_middle(positions[5], self.move_time)
+            hand.wiggle_index(positions[6], self.move_time)
+            hand.curl_index(positions[7], self.move_time)
+            hand.wiggle_thumb(positions[8], self.move_time)
+            hand.curl_thumb(positions[9], self.move_time)
+            self.get_logger().info(f"Sent: {[f'{v:.2f}' for v in positions]}", throttle_duration_sec=0.5)
         except Exception as e:
-            self.get_logger().error(f"Failed to send mapped joint positions: {e}")
+            self.get_logger().error(f"Failed to send joint positions: {e}")
 
     def trajectory_callback(self, msg):
-        self.get_logger().info(f"Received trajectory with {len(msg.points)} points")
-        for point in msg.points:
-            self.send_joint_positions(point.positions)
-            self.current_positions = point.positions
-            time.sleep(0.1)
+        if not msg.points:
+            return
+        point = msg.points[-1]  # use latest point; EMG_to_nano sends single-point msgs
+        self.send_joint_positions(point.positions)
+        self.current_positions = list(point.positions)
 
     def publish_joint_states(self):
         joint_state = JointState()
@@ -82,9 +70,8 @@ class NanoHandDriver(Node):
         self.joint_state_pub.publish(joint_state)
 
     def destroy_node(self):
-        if self.serial_conn:
-            self.serial_conn.close()
         super().destroy_node()
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -96,6 +83,7 @@ def main(args=None):
     finally:
         driver.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()
