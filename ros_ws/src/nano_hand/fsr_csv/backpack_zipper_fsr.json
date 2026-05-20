@@ -1,0 +1,31 @@
+{
+  "recording": "backpack_zipper",
+  "fsr_log": "fsr_backpack_zipper.csv",
+  "sensors": {
+    "fsr0": {
+      "baseline": 0.0,
+      "contact_force": 91.0,
+      "grasp_force": 1159.4
+    },
+    "fsr1": {
+      "baseline": 0.0,
+      "contact_force": 447.0,
+      "grasp_force": 2338.9
+    },
+    "fsr2": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    },
+    "fsr3": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    },
+    "fsr4": {
+      "baseline": 0.8,
+      "contact_force": null,
+      "grasp_force": null
+    }
+  }
+}

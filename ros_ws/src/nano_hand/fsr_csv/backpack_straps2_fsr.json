@@ -1,0 +1,31 @@
+{
+  "recording": "backpack_straps2",
+  "fsr_log": "fsr_backpack_straps2.csv",
+  "sensors": {
+    "fsr0": {
+      "baseline": 0.0,
+      "contact_force": 110.0,
+      "grasp_force": 1348.6
+    },
+    "fsr1": {
+      "baseline": 0.0,
+      "contact_force": 561.0,
+      "grasp_force": 2263.0
+    },
+    "fsr2": {
+      "baseline": 0.0,
+      "contact_force": 32.0,
+      "grasp_force": 1922.6
+    },
+    "fsr3": {
+      "baseline": 0.0,
+      "contact_force": 376.0,
+      "grasp_force": 809.8
+    },
+    "fsr4": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    }
+  }
+}

@@ -21,7 +21,7 @@ Examples:
     python3 analyze_fsr.py fsr_log_20240428_120000.csv --recording mug_handle --no-plot
 
 Output:
-    ros_ws/src/nano_hand/rokoko_csv/<recording>_fsr.json
+    ros_ws/src/nano_hand/fsr_csv/<recording>_fsr.json
 """
 
 import argparse

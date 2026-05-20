@@ -37,7 +37,8 @@ SEND_FUNCTIONS = {
 }
 
 
-CURL_GAIN = 2.0  # amplifies curl: >1.0 pushes proportion further toward 0 (closed)
+CURL_GAIN = 2.5  # amplifies curl: >1.0 pushes proportion further toward 0 (closed)
+CURL_GAIN_THUMB = 2.0
 
 def angle_to_proportion(joint_name, angle_rad):
     """Convert URDF joint angle (radians) to hamsa proportion (0.0–1.0).
@@ -55,7 +56,10 @@ def angle_to_proportion(joint_name, angle_rad):
         return 0.0
     t = (angle_rad - lo) / (hi - lo)
     if 'curl' in joint_name:
-        return max(0.0, 1.0 - t * CURL_GAIN)
+        if 'thumb' in joint_name:
+            return max(0.0, 1.0 - t * CURL_GAIN_THUMB)
+        else:
+            return max(0.0, 1.0 - t * CURL_GAIN)
     return 1.0 - t
 
 

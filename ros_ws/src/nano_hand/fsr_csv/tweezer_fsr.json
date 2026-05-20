@@ -1,0 +1,31 @@
+{
+  "recording": "tweezer",
+  "fsr_log": "fsr_tweezer.csv",
+  "sensors": {
+    "fsr0": {
+      "baseline": 0.0,
+      "contact_force": 58.0,
+      "grasp_force": 1779.9
+    },
+    "fsr1": {
+      "baseline": 0.4,
+      "contact_force": 32.0,
+      "grasp_force": 369.7
+    },
+    "fsr2": {
+      "baseline": 0.0,
+      "contact_force": 273.0,
+      "grasp_force": 1197.1
+    },
+    "fsr3": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    },
+    "fsr4": {
+      "baseline": 0.0,
+      "contact_force": null,
+      "grasp_force": null
+    }
+  }
+}

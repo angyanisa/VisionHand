@@ -41,7 +41,8 @@ CALIBRATION_FILE = "nano_calibration.json"
 FSR_STALE_S = 0.5       # treat FSR as disconnected if no update within this window
 EXTRAP_STEP = 0.002     # position units added per frame during extrapolation
 EXTRAP_TIMEOUT_S = 5.0  # maximum extrapolation duration
-CURL_GAIN = 2.0         # amplifies curl: half the URDF range drives full servo travel
+CURL_GAIN = 2.5         # amplifies curl: half the URDF range drives full servo travel
+CURL_GAIN_THUMB = 2.0
 
 try:
     import pybullet as p
@@ -77,6 +78,11 @@ class EMGToNanoMultiCSV(Node):
             "Bottle cap": 'bottle_lid_fsr.csv',
             "Mug body": 'mug_body_fsr.csv',
             "Mug handle": 'mug_handle_fsr.csv',
+            "Backpack handle": "backpack_handle2.csv",
+            "Backpack strap": "backpack_straps2.csv",
+            "Backpack zipper": "backpack_zipper.csv",
+            "Scissors": "scissors3.csv",
+            "Tweezers": "tweezer.csv",
             "test": 'test.csv'
         }
 
@@ -173,17 +179,18 @@ class EMGToNanoMultiCSV(Node):
 
     def _load_fsr_thresholds(self, csv_filename):
         stem = os.path.splitext(csv_filename)[0]
-        json_path = os.path.join(
-            get_package_share_directory('nano_hand'), 'fsr_csv', f'{stem}.json'
-        )
-        try:
-            with open(json_path) as f:
-                data = json.load(f)
-            self.get_logger().info(f"Loaded FSR thresholds: {stem}.json")
-            return data.get('sensors', {})
-        except FileNotFoundError:
-            self.get_logger().warn(f"No FSR thresholds found for {csv_filename} — force gating disabled.")
-            return {}
+        fsr_dir = os.path.join(get_package_share_directory('nano_hand'), 'fsr_csv')
+        for candidate in [f'{stem}.json', f'{stem}_fsr.json']:
+            json_path = os.path.join(fsr_dir, candidate)
+            try:
+                with open(json_path) as f:
+                    data = json.load(f)
+                self.get_logger().info(f"Loaded FSR thresholds: {candidate}")
+                return data.get('sensors', {})
+            except FileNotFoundError:
+                continue
+        self.get_logger().warn(f"No FSR thresholds found for {csv_filename} — force gating disabled.")
+        return {}
 
     # ------------------------------------------------------------------
     # jparse IK setup (called once when use_jparse_ik=True)
@@ -503,7 +510,10 @@ class EMGToNanoMultiCSV(Node):
             t = (angle - lo) / span if span > 0 else 0.0
             t = max(0.0, min(1.0, t))
             if 'curl' in jname:
-                prop = max(0.0, 1.0 - t * CURL_GAIN)
+                if 'thumb' in jname:
+                    prop = max(0.0, 1.0 - t * CURL_GAIN_THUMB)
+                else:
+                    prop = max(0.0, 1.0 - t * CURL_GAIN)
             else:
                 prop = 1.0 - t
             positions.append(prop)
