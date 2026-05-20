@@ -73,19 +73,32 @@ class EMGToNanoMultiCSV(Node):
             self.create_subscription(Float32MultiArray, '/fsr/data', self._fsr_data_cb, 10)
             self.create_subscription(Bool, '/fsr/connected', self._fsr_connected_cb, 10)
 
-        self.csv_map = {
-            "Bottle body": 'bottle_body_fsr.csv',
-            "Bottle cap": 'bottle_lid_fsr.csv',
-            "Mug body": 'mug_body_fsr.csv',
-            "Mug handle": 'mug_handle_fsr.csv',
-            "Backpack handle": "backpack_handle2.csv",
-            "Backpack strap": "backpack_straps2.csv",
-            "Backpack zipper": "backpack_zipper.csv",
-            "Scissors": "scissors3.csv",
-            "Tweezers": "tweezer.csv",
-            "test": 'test.csv'
+        # Steps executed on gesture=1.  Each entry is (csv_filename, use_fsr).
+        # Pre-grasp pose = first row of step 0's CSV (no separate file needed).
+        # Step 0 is the grasp recording (FSR gated), played once for all objects.
+        # Single-element list: done after grasp; gesture=1 does nothing more.
+        # Multi-element list: after grasp, gesture=1 cycles steps[1:] indefinitely
+        #   (close -> open -> close ...).  FSR off for open/release steps.
+        # Placeholder names are used until segmented recordings exist.
+        self.csv_steps = {
+            "Bottle body":     [('bottle_body_fsr.csv',  True)],
+            "Bottle cap":      [('bottle_lid_fsr.csv',   True)],
+            "Mug body":        [('mug_body_fsr.csv',     True)],
+            "Mug handle":      [('mug_handle_fsr.csv',   True)],
+            "Backpack handle": [('backpack_handle2.csv', True)],
+            "Backpack strap":  [('backpack_straps2.csv', True)],
+            "Backpack zipper": [('backpack_zipper.csv',  True)],
+            "Scissors":        [('scissors_grasp.csv',   True),   # segment scissors3.csv
+                                ('scissors_open.csv',    False),
+                                ('scissors_close.csv',   True)],
+            "Tweezers":        [('tweezer_grasp.csv',    True),   # segment tweezer.csv
+                                ('tweezer_squeeze.csv',  True),
+                                ('tweezer_release.csv',  False)],
+            "test":            [('test.csv',             True)],
         }
 
+        self.detected_object = None
+        self.current_step = 0
         self.current_df = None
         self.current_thresholds = {}   # loaded from <recording>_fsr.json
         self.is_open_pose = False
@@ -99,7 +112,7 @@ class EMGToNanoMultiCSV(Node):
         self.last_gesture = 0
         self.candidate_gesture = None
         self.candidate_count = 0
-        self.required_stability = 3
+        self.required_stability = 1
 
         # Calibration
         if os.path.exists(CALIBRATION_FILE):
@@ -627,6 +640,33 @@ class EMGToNanoMultiCSV(Node):
         self.current_df = None
 
     def start_stream(self):
+        if self.detected_object is None:
+            self.get_logger().info("No active object -- use gesture=2 to open hand.")
+            return
+        steps = self.csv_steps[self.detected_object]
+        step_idx = self.current_step
+        csv_file, step_uses_fsr = steps[step_idx]
+
+        # Step 0 (grasp) plays once for all objects.
+        # Single-step: clear object after grasp so subsequent gesture=1 is a no-op.
+        # Multi-step: after grasp advance to step 1, then cycle within steps[1:] forever.
+        if len(steps) == 1:
+            self.detected_object = None
+        elif step_idx == 0:
+            self.current_step = 1
+        else:
+            next_idx = step_idx + 1
+            self.current_step = 1 if next_idx >= len(steps) else next_idx
+
+        file_path = os.path.join(get_package_share_directory('nano_hand'), 'rokoko_csv', csv_file)
+        try:
+            self.current_df = pd.read_csv(file_path)
+        except FileNotFoundError:
+            self.get_logger().error(f"Step CSV not found: {file_path}")
+            return
+        self.current_thresholds = self._load_fsr_thresholds(csv_file) if (self.use_fsr and step_uses_fsr) else {}
+        self.get_logger().info(f"Step {step_idx + 1}/{len(steps)}: {csv_file} (FSR: {bool(self.current_thresholds)})")
+
         self.stop_flag = False
         if self.use_jparse_ik:
             self._reset_ik_state()
@@ -680,13 +720,18 @@ class EMGToNanoMultiCSV(Node):
             self.candidate_count = 0
 
     def start_pregrasp(self, detected_object):
-        csv_file = self.csv_map[detected_object]
+        self.detected_object = detected_object
+        self.current_step = 0
+        csv_file, _ = self.csv_steps[detected_object][0]
         file_path = os.path.join(get_package_share_directory('nano_hand'), 'rokoko_csv', csv_file)
-        self.current_df = pd.read_csv(file_path)
-        self.current_thresholds = self._load_fsr_thresholds(csv_file) if self.use_fsr else {}
-        self.get_logger().info(f"Pre-grasp: loaded {csv_file}.")
-        if not self.current_df.empty and not self.stop_flag:
-            first_row = self.current_df.iloc[0]
+        try:
+            df = pd.read_csv(file_path)
+        except FileNotFoundError:
+            self.get_logger().error(f"Grasp CSV not found: {file_path}")
+            return
+        self.get_logger().info(f"Pre-grasp: first frame of {csv_file}.")
+        if not df.empty and not self.stop_flag:
+            first_row = df.iloc[0]
             if self.use_jparse_ik:
                 self._publish_positions(self._jparse_ik_positions(first_row))
             else:
@@ -696,7 +741,7 @@ class EMGToNanoMultiCSV(Node):
 
     def gemini_callback(self, msg):
         detected_object = msg.data
-        if detected_object in self.csv_map:
+        if detected_object in self.csv_steps:
             self.start_pregrasp(detected_object)
             self.is_open_pose = False
         elif detected_object == "open":

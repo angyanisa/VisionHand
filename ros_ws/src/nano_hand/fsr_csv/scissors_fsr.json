@@ -1,11 +1,11 @@
 {
-  "recording": "backpack_straps2",
-  "fsr_log": "fsr_backpack_straps2.csv",
+  "recording": "scissors4",
+  "fsr_log": "fsr_scissors4.csv",
   "sensors": {
     "fsr0": {
       "baseline": 0.0,
-      "contact_force": 110.0,
-      "grasp_force": 1348.6
+      "contact_force": 603.0,
+      "grasp_force": 254.9
     },
     "fsr1": {
       "baseline": 0.0,
@@ -14,13 +14,13 @@
     },
     "fsr2": {
       "baseline": 0.0,
-      "contact_force": null,
-      "grasp_force": null
+      "contact_force": 33.0,
+      "grasp_force": 703.6
     },
     "fsr3": {
-      "baseline": 0.0,
-      "contact_force": null,
-      "grasp_force": null
+      "baseline": 0.6,
+      "contact_force": 181.0,
+      "grasp_force": 232.2
     },
     "fsr4": {
       "baseline": 0.0,
