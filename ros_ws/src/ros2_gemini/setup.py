@@ -23,8 +23,9 @@ setup(
         ],
     },
     entry_points={
-        'console_scripts': [
-            'gemini_image_label = ros2_gemini.gemini_image_label:main'
-        ],
-    },
+    'console_scripts': [
+        'gemini_image_label = ros2_gemini.gemini_image_label:main',
+        'gemini_to_audio = ros2_gemini.gemini_to_audio:main',
+    ],
+},
 )

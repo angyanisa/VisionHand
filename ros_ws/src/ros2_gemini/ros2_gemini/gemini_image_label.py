@@ -19,7 +19,7 @@ class GeminiImageLabel(Node):
         self.publisher = self.create_publisher(String, '/gemini/detected_object', 10)
 
         # Set up Gemini client (use environment variable for API key)
-        load_dotenv('/home/belle/VisionHand/ros_ws/.env')
+        load_dotenv('/home/gabriel/VisionHand/ros_ws/.env')
         api_key = os.getenv("API_KEY")
         self.client = genai.Client(api_key=api_key)
         self.get_logger().info('Gemini Image Label Node Initialized. Waiting for images...')
